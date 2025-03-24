@@ -2,6 +2,7 @@ import tkinter as tk
 from view_manager import ViewManager
 from main_view import MainView
 from section_view import SectionView
+from detail_view import DetailView
 from image_model import ImageModel
 
 class AppController:
@@ -39,9 +40,14 @@ class AppController:
         section_view = SectionView(self.root, self.view_manager)
         self.view_manager.register_view("section", section_view)
         
+        # Vista de detalle de sección
+        detail_view = DetailView(self.root, self.view_manager)
+        self.view_manager.register_view("detail", detail_view)
+        
         # Configurar comunicación entre vistas y controlador
         main_view.set_controller(self)
         section_view.set_controller(self)
+        detail_view.set_controller(self)
     
     def center_window(self, window, width, height):
         """Centrar una ventana en la pantalla"""
@@ -81,7 +87,15 @@ class AppController:
         """Cambiar a la vista de secciones"""
         if self.has_image():
             self.view_manager.show_view("section", image=self.get_processed_image())
+            
+    def switch_to_detail_view(self, section_image, position):
+        """Cambiar a la vista de detalle de sección"""
+        self.view_manager.show_view("detail", section_image=section_image, position=position)
     
     def switch_to_main_view(self):
-        """Cambiar a la vista principal"""
+        """Cambiar a la vista principal (resetear estado)"""
+        # Restablecer la interfaz a su estado inicial
+        main_view = self.view_manager.views.get("main")
+        if main_view:
+            main_view.reset_view()
         self.view_manager.show_view("main")

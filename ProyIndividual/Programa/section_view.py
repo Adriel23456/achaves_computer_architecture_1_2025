@@ -16,6 +16,7 @@ class SectionView(BaseView):
         self.current_image = None
         self.section_buttons = []
         self.section_images = []  # Para mantener referencias
+        self.selected_section = None  # Para almacenar la sección seleccionada
         
         # Crear widgets
         self.create_widgets()
@@ -71,7 +72,8 @@ class SectionView(BaseView):
             self.button_frame,
             text="Siguiente Sección",
             style='TButton',
-            command=self.next_section
+            command=self.next_section,
+            state="disabled"  # Deshabilitado hasta seleccionar una sección
         )
         self.next_button.pack(side=tk.RIGHT, padx=10)
     
@@ -79,7 +81,16 @@ class SectionView(BaseView):
         """Método llamado cuando la vista se muestra"""
         if 'image' in kwargs:
             self.current_image = kwargs['image']
-            self.display_sections()
+            
+        # Restaurar estado inicial (sin sección seleccionada)
+        self.selected_section = None
+        self.next_button.config(state="disabled")
+        
+        # Actualizar información
+        self.info_label.config(text="Seleccione una de las 16 secciones de la imagen")
+        
+        # Mostrar secciones
+        self.display_sections()
     
     def display_sections(self):
         """Mostrar la cuadrícula de secciones"""
@@ -121,6 +132,9 @@ class SectionView(BaseView):
         row, col = position
         section_number = row * 4 + col + 1
         
+        # Almacenar la sección seleccionada
+        self.selected_section = (row, col)
+        
         # Marcar la sección seleccionada con un borde
         for i, button in enumerate(self.section_buttons):
             if i == (row * 4 + col):
@@ -128,13 +142,13 @@ class SectionView(BaseView):
             else:
                 button.config(bd=1, highlightbackground="#1e1e1e", highlightthickness=0)
         
-        # Imprimir en consola la sección seleccionada
-        print(f"Sección seleccionada: {section_number} (Fila: {row+1}, Columna: {col+1})")
-        
         # Actualizar etiqueta de información
         self.info_label.config(
             text=f"Sección {section_number} seleccionada (Fila: {row+1}, Columna: {col+1})"
         )
+        
+        # Habilitar el botón de siguiente sección
+        self.next_button.config(state="normal")
     
     def go_back(self):
         """Volver a la vista principal"""
@@ -142,8 +156,11 @@ class SectionView(BaseView):
             self.controller.switch_to_main_view()
     
     def next_section(self):
-        """Pasar a la siguiente sección (por ahora muestra mensaje)"""
-        self.show_message(
-            "Información", 
-            "Esta funcionalidad será implementada en futuras versiones."
-        )
+        """Pasar a la vista de detalle de la sección seleccionada"""
+        if self.selected_section and self.controller:
+            row, col = self.selected_section
+            # Obtener la sección como imagen
+            section_image = self.controller.image_model.get_section(row, col)
+            if section_image:
+                # Cambiar a la vista de detalle
+                self.controller.switch_to_detail_view(section_image, (row, col))

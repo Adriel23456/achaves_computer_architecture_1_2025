@@ -97,6 +97,9 @@ class MainView(BaseView):
             
             # Si se seleccionó un archivo
             if file_path:
+                # Resetear estado actual
+                self.reset_view()
+                
                 # Cargar la imagen
                 success = self.controller.load_image(file_path)
                 
@@ -129,6 +132,21 @@ class MainView(BaseView):
         if image_tk:
             self.image_label.configure(image=image_tk)
             self.image_label.image = image_tk  # Mantener referencia
+            
+    def reset_view(self):
+        """Restaurar la vista a su estado inicial"""
+        # Limpiar imagen
+        self.image_label.configure(image="")
+        self.image_label.image = None
+        
+        # Actualizar información
+        self.info_label.configure(text="Ninguna imagen cargada")
+        
+        # Deshabilitar botón de siguiente sección
+        self.next_section_button.config(state="disabled")
+        
+        # Restaurar título
+        self.parent.title("Visor de Imágenes")
     
     def update_info(self, info):
         """Actualizar información de la imagen"""
@@ -173,7 +191,7 @@ class MainView(BaseView):
                  "Instituto Tecnológico de Costa Rica\n" +
                  "Escuela de Ingeniería en Computadores\n" +
                  "CE4301 — Arquitectura de Computadores I\n\n" +
-                 "El proceso de interpolación bilineal es un poco más complejo pues\n" +
+                 "El proceso de interpolación bilineal es un proceso complejo pues\n" +
                  "trata de rellenar el espacio con información continua,\n" +
                  "no replicando un mismo valor.",
             font=("Helvetica", 12),
