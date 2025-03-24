@@ -111,16 +111,48 @@ class DetailView(BaseView):
         )
     
     def apply_bilinear_interpolation(self):
-        """Preparar para aplicar interpolación bilineal (por ahora solo registra la acción)"""
+        """Preparar para aplicar interpolación bilineal (genera archivos input.img y output.img)"""
         if not self.current_section:
             return
             
-        # Registrar en consola (para futura implementación)
-        print(f"Botón 'Generar Aumento por Interpolación Bilineal' presionado")
-        print(f"Imagen de sección disponible: {self.current_section.size} píxeles")
-        print(f"Posición de sección: {self.section_position}")
+        # Importar las funciones
+        from input_gen import generate_input_file
+        from output_gen import generate_output_file
+        import os
         
-        # Para desarrollo futuro: la imagen está disponible en self.current_section
+        # Generar el archivo input.img en el directorio actual
+        success_input = generate_input_file(self.current_section)
+        
+        if success_input:
+            input_path = os.path.join(os.getcwd(), "input.img")
+            
+            # Generar el archivo output.img
+            success_output = generate_output_file()
+            
+            if success_output:
+                output_path = os.path.join(os.getcwd(), "output.img")
+                
+                # Mostrar mensaje al usuario
+                self.info_label.config(
+                    text=f"Archivos input.img y output.img generados correctamente para la sección {self.section_position[0]*4+self.section_position[1]+1}"
+                )
+                
+                # Cambiar a la vista de resultados
+                if self.controller:
+                    self.controller.switch_to_result_view()
+                    
+            else:
+                print("Error al generar el archivo output.img")
+                # Mostrar mensaje de error al usuario
+                self.info_label.config(
+                    text="Error al generar el archivo output.img"
+                )
+        else:
+            print("Error al generar el archivo input.img")
+            # Mostrar mensaje de error al usuario
+            self.info_label.config(
+                text="Error al generar el archivo input.img"
+            )
     
     def go_back(self):
         """Volver a la vista de secciones"""

@@ -8,8 +8,8 @@ class ImageModel:
         self.original_image = None
         self.processed_image = None
         self.display_image = None
-        self.target_size = (500, 500)
-        self.section_size = (125, 125)  # Tamaño de cada sección (16 secciones en total)
+        self.target_size = (512, 512)
+        self.section_size = (128, 128)  # Tamaño de cada sección (16 secciones en total)
     
     def load_image(self, file_path):
         """Cargar una imagen desde el sistema de archivos"""
