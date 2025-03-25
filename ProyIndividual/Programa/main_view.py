@@ -91,7 +91,7 @@ class MainView(BaseView):
             # Abrir diálogo centrado en directorio actual
             file_path = filedialog.askopenfilename(
                 title="Seleccionar una Imagen",
-                filetypes=[("Archivos JPEG", "*.jpg;*.jpeg")],
+                filetypes=[("Archivos JPEG", "*.jpg"), ("Archivos JPEG", "*.jpeg")],
                 initialdir=os.getcwd()
             )
             
