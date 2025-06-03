@@ -1,0 +1,25 @@
+En esta conversación me vas a estar ayudando a desarrollar un workflow completo (Set de archivos .py que logren nuestro objetivo) para el desarrollo de una aplicacion completa utilizando Tkinter, en donde esto es lo que quiero que me logres programar:
+1. Necesito que me programes un programa general de python el cual va a tener un sidebar vertical al lado izquierdo el cual va a controlar cual vista vamos a estar observando (la vista a la que me refiero es al resto de la pantalla).
+2. Este side-bar inicialmente tendra seleccionado el boton superior, esto considerando que este sidebar va a contener solamente los botones para los cambios de las diferentes vistas del programa.
+3. Se tendran 6 botones por ahora en el side-bar: Presentación, Compilador, CPU, Analisis, Configuracion, Creditos
+4. Por ahora quiero que al seleccionar cada uno de estos botones cambiemos a la vista seleccionada, (la seccion derecha disponible de la pantalla)
+5. Quiero que la configuracion del tamaño de la ventana y demas, las controles mediante un Json que guardaras en assets/config.json. En donde si modificamos el tamaño de la ventana que esto se pueda observar en tiempo real y que modifique nuestro json, para que la proxima vez que se abra la apliccion que la configuracion guardada se cargue y se ejecute.
+6. Por ahora solo quiero que me configures clases vacias para las vistas de Presentación, Compilador, CPU, Analisis, Creditos. Que solo digan que tipo de ventana son y que generes el archivo .py de estas vistas dentro de una carpeta que se llame: GUI/Vistas/X
+7. La vista de Configuracion si es la que necesito que me generes completamente, esta vista de configuracion tendra: Un boton para modificar el tamaño de la aplicacion actual, un boton para modificar el tamaño de la letra actual, un boton para entrar a modo full-screen, y un boton para cambiar entre un tema negro o un tema blanco.
+8. Considera que tendremos que crear lo siguiente:
+- Archivo main.py para la ejecucion del programa
+- Una carpeta GUI:
+	- Dentro de esta carpeta ira una clase desing.py para controlar el diseño de los componentes y elementos
+	- Dentro de esta carpeta ira una clase controller.py para controlar el movimiento entre las vistas y asegurar que solo se tengan que generar una vez y luego simplemente se cargan si regresamos a ellas
+	- Dentro de esta carpeta ira una clase view_base.py para generar la vista inicial del side-bar con todos los botones y la preparacion general del resto del programa
+	- Dentro de esta carpeta luego tendremos la carpeta de Views:
+		- Dentro de Views tendremos los archivos de: Presentación, Compilador, CPU, Analisis, Configuracion y Creditos. (Que por ahora solo enfocate en desarrollar el de configuracion correctamente).
+9. Te propuse una idea de desarrollo PERO yo quiero que me generes en mejor workflow mas controlado, ordenado y lo mas FACILMENTE escalable posible. Genera los archivos que consideres necesarios para darle inicio al desarrollo profesional de este proyecto medio gráfico.
+10. Considera que tendremos un font en assets/fonts/ttf/JetBrainsMono-XXX.ttf (Tengo un monton en esta carpeta escoge el que quieras)
+11. Como ultimo detalle Y ESTE ES SUPER IMPORTANTE quiero que toda nuestra programacion sea exicitamente programada hacia la direccion de ejecion del main.py, o sea, quiero que si ejecuto directamente el main.py SIN ESTAR en el directorio correcto o sea tal que asi: "python test/main.py" Esto no me provoque problemas para encontrar los archivos .py que tengamos generados, o sea, que los imports de archivos externos y demas NO SE VEAN AFECTADOS, por ejemplo quiero que errores como este sean imposibles y que tengamos una constante de la direccion del directorio en donde esta el main.py para asi SIEMPRE usar esa direccion de directorio para todos los imports y asegurar la integridad inamovible de nuestro programa. Error que queremos evitar:
+"""
+- Que se genere una carpeta que digimos que se genenerara desde el directorio de ejecucion EN VEZ del directorio (y los movimientos siguientes) en donde se encuentra el main.py
+- Que no se reconozca la posicion de un archivo externo...
+"""
+13. Asegurate que el programa sea para Windows11
+12. Te paso una imagen de ejemplo de como se deberia de visualizar la base del programa:
