@@ -16,7 +16,7 @@ from GUI.view_base import Application
 
 def ensure_config_exists():
     """Asegura que el archivo de configuración exista con valores por defecto"""
-    config_path = BASE_DIR / "assets" / "config.json"
+    config_path = BASE_DIR / "Assets" / "config.json"
     
     # Crear directorios si no existen
     config_path.parent.mkdir(parents=True, exist_ok=True)

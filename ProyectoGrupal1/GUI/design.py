@@ -65,7 +65,7 @@ class DesignManager:
     
     def _load_fonts(self):
         """Carga las fuentes personalizadas"""
-        font_path = self.base_dir / "assets" / "fonts" / "ttf"
+        font_path = self.base_dir / "Assets" / "fonts" / "ttf"
         font_file = font_path / f"{self.config['theme']['font_family']}.ttf"
         
         # Verificar si el archivo de fuente existe

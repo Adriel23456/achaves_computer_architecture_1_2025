@@ -51,7 +51,7 @@ class TableControl:
                     cls._instance._initialized = False
         return cls._instance
     
-    def __init__(self, filename: str = "assets/table_data.xlsx"):
+    def __init__(self, filename: str = "Assets/table_data.xlsx"):
         """
         Inicializa TableControl con un archivo Excel.
         
@@ -66,8 +66,8 @@ class TableControl:
         self.workbook = None
         self.worksheet = None
         
-        # Crear directorio assets si no existe
-        os.makedirs("assets", exist_ok=True)
+        # Crear directorio Assets si no existe
+        os.makedirs("Assets", exist_ok=True)
         
         # Inicializar archivo Excel
         self._initialize_excel()
@@ -110,7 +110,7 @@ class TableControl:
             self.workbook.save(self.filename)
         except PermissionError:
             # Si el archivo está abierto, intentar guardar con otro nombre
-            backup_name = f"assets/table_data_temp.xlsx"
+            backup_name = f"Assets/table_data_temp.xlsx"
             self.workbook.save(backup_name)
             print(f"⚠ Archivo principal bloqueado, guardado en: {backup_name}")
         except Exception as e:
