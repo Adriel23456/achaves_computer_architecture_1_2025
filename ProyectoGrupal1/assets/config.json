@@ -1,0 +1,17 @@
+{
+    "window": {
+        "width": 1250,
+        "height": 850,
+        "x": 357,
+        "y": 86,
+        "fullscreen": false
+    },
+    "theme": {
+        "current": "light",
+        "font_size": 12,
+        "font_family": "JetBrainsMono-Regular"
+    },
+    "sidebar": {
+        "width": 200
+    }
+}
