@@ -10,7 +10,7 @@ class DesignManager:
         self.base_dir = base_dir
         self.config = config
         
-        # Definir paletas de colores
+        # Definir paletas de colores CORREGIDAS
         self.themes = {
             'dark': {
                 'bg': '#1e1e1e',
@@ -51,7 +51,7 @@ class DesignManager:
                 'sidebar_button_bg': '#e8e8e8',
                 'sidebar_button_fg': '#000000',
                 'sidebar_button_active_bg': '#0078D4',
-                'sidebar_button_active_fg': '#ffffff',
+                'sidebar_button_active_fg': '#ffffff',  # Siempre blanco en botón activo
                 'content_bg': '#ffffff'
             }
         }
@@ -96,7 +96,7 @@ class DesignManager:
         self.style.configure('TFrame', background=colors['frame_bg'])
         self.style.configure('TLabel', background=colors['label_bg'], foreground=colors['label_fg'])
         
-        # Estilos de botones generales
+        # Estilos de botones generales - CORREGIDO
         self.style.configure(
             'TButton',
             background=colors['button_bg'],
@@ -107,19 +107,25 @@ class DesignManager:
         )
         self.style.map(
             'TButton',
-            background=[('active', colors['button_hover']), ('pressed', colors['button_active'])],
-            foreground=[('active', colors['button_fg'])]
+            background=[
+                ('active', colors['button_hover']), 
+                ('pressed', colors['button_active'])
+            ],
+            foreground=[
+                ('active', colors['button_fg']),  # Mantener el color de texto
+                ('pressed', colors['button_fg'])   # Mantener el color de texto
+            ]
         )
         
-        # Estilo específico para botones del sidebar
+        # Estilo específico para botones del sidebar - CORREGIDO
         self.style.configure(
             'Sidebar.TButton',
             background=colors['sidebar_button_bg'],
             foreground=colors['sidebar_button_fg'],
             borderwidth=0,
             relief='flat',
-            padding=(10, 8),
-            anchor='w'  # Alinear texto a la izquierda
+            padding=(10, 15),  # Más padding vertical
+            anchor='w'
         )
         self.style.map(
             'Sidebar.TButton',
@@ -128,7 +134,8 @@ class DesignManager:
                 ('pressed', colors['button_active'])
             ],
             foreground=[
-                ('active', colors['sidebar_button_fg'])
+                ('active', colors['sidebar_button_fg']),  # Mantener el color de texto
+                ('pressed', colors['sidebar_button_fg'])   # Mantener el color de texto
             ]
         )
         
@@ -139,7 +146,7 @@ class DesignManager:
             foreground=colors['sidebar_button_active_fg'],
             borderwidth=0,
             relief='flat',
-            padding=(10, 8),
+            padding=(10, 15),  # Más padding vertical
             anchor='w'
         )
         self.style.map(
@@ -149,16 +156,19 @@ class DesignManager:
                 ('pressed', colors['sidebar_button_active_bg'])
             ],
             foreground=[
-                ('active', colors['sidebar_button_active_fg'])
+                ('active', colors['sidebar_button_active_fg']),
+                ('pressed', colors['sidebar_button_active_fg'])
             ]
         )
         
-        # Estilos de entrada
+        # Estilos de entrada - CORREGIDO
         self.style.configure(
             'TEntry',
             fieldbackground=colors['entry_bg'],
             foreground=colors['entry_fg'],
-            insertcolor=colors['entry_fg']
+            insertcolor=colors['entry_fg'],
+            borderwidth=1,
+            relief='solid'
         )
         
         # Estilos de Combobox
@@ -167,14 +177,34 @@ class DesignManager:
             fieldbackground=colors['entry_bg'],
             foreground=colors['entry_fg'],
             selectbackground=colors['select_bg'],
-            selectforeground=colors['select_fg']
+            selectforeground=colors['select_fg'],
+            arrowcolor=colors['fg']
         )
         
         # Estilos de Checkbutton
         self.style.configure(
             'TCheckbutton',
             background=colors['bg'],
-            foreground=colors['fg']
+            foreground=colors['fg'],
+            focuscolor='none'
+        )
+        self.style.map(
+            'TCheckbutton',
+            background=[('active', colors['bg'])],
+            foreground=[('active', colors['fg'])]
+        )
+        
+        # Estilos de Radiobutton
+        self.style.configure(
+            'TRadiobutton',
+            background=colors['bg'],
+            foreground=colors['fg'],
+            focuscolor='none'
+        )
+        self.style.map(
+            'TRadiobutton',
+            background=[('active', colors['bg'])],
+            foreground=[('active', colors['fg'])]
         )
         
         # Estilos de Scale
@@ -182,13 +212,34 @@ class DesignManager:
             'TScale',
             background=colors['bg'],
             troughcolor=colors['button_bg'],
-            sliderlength=20
+            sliderlength=20,
+            borderwidth=0
+        )
+        
+        # Estilos de LabelFrame
+        self.style.configure(
+            'TLabelframe',
+            background=colors['bg'],
+            foreground=colors['fg'],
+            borderwidth=1,
+            relief='solid'
+        )
+        self.style.configure(
+            'TLabelframe.Label',
+            background=colors['bg'],
+            foreground=colors['fg']
         )
         
         # Estilo para el frame del sidebar
         self.style.configure(
             'Sidebar.TFrame',
             background=colors['sidebar_bg']
+        )
+        
+        # Estilo para separadores
+        self.style.configure(
+            'TSeparator',
+            background=colors['button_bg']
         )
     
     def apply_theme(self, root, theme_name):
@@ -210,6 +261,8 @@ class DesignManager:
         root.option_add('*Foreground', colors['fg'])
         root.option_add('*Entry.Background', colors['entry_bg'])
         root.option_add('*Entry.Foreground', colors['entry_fg'])
+        root.option_add('*Text.Background', colors['entry_bg'])
+        root.option_add('*Text.Foreground', colors['entry_fg'])
     
     def get_font(self, font_type='normal'):
         """Retorna una fuente específica"""

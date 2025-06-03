@@ -1,14 +1,14 @@
 {
     "window": {
-        "width": 1250,
-        "height": 850,
-        "x": 382,
-        "y": 86,
+        "width": 1440,
+        "height": 900,
+        "x": 240,
+        "y": 90,
         "fullscreen": false
     },
     "theme": {
-        "current": "light",
-        "font_size": 12,
+        "current": "dark",
+        "font_size": 14,
         "font_family": "JetBrainsMono-Regular"
     },
     "sidebar": {

@@ -1,316 +1,200 @@
-"""
-configuracion.py - Vista de configuración de la aplicación
-"""
+# GUI/Views/configuracion.py  (archivo completo reemplazado)
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 
+from GUI.Components.styled_widgets import (
+    StyledLabel,
+    StyledCheckbutton,
+    StyledRadiobutton,
+)
+from GUI.Components.styled_scrollbar import ScrollableFrame
+from GUI.Components.styled_button import StyledButton
+from GUI.Components.styled_combobox import StyledCombobox
+
+
 class ConfiguracionView:
+    PRESET_SIZES = [
+        "1024x600",
+        "1280x720",
+        "1366x768",
+        "1440x900",
+        "1920x1080",
+        "2560x1440",
+    ]
+
     def __init__(self, parent, base_dir, config, design_manager, on_config_change):
         self.parent = parent
         self.base_dir = base_dir
         self.config = config
         self.design_manager = design_manager
         self.on_config_change = on_config_change
-        
-        # Variables de control
-        self.window_width_var = tk.StringVar(value=str(config['window']['width']))
-        self.window_height_var = tk.StringVar(value=str(config['window']['height']))
-        self.font_size_var = tk.IntVar(value=config['theme']['font_size'])
-        self.fullscreen_var = tk.BooleanVar(value=config['window']['fullscreen'])
-        self.theme_var = tk.StringVar(value=config['theme']['current'])
-        
+
+        # --- variables de control ---
+        self.font_size_var = tk.IntVar(value=config["theme"]["font_size"])
+        self.fullscreen_var = tk.BooleanVar(value=config["window"]["fullscreen"])
+        self.theme_var = tk.StringVar(value=config["theme"]["current"])
+        self.size_var = tk.StringVar(
+            value=f'{config["window"]["width"]}x{config["window"]["height"]}'
+        )
+
         self._create_ui()
-    
+
+        # --- sincronía con cambios globales ---
+        root = self.parent.winfo_toplevel()
+        root.bind("<<FullscreenToggled>>", self._sync_fullscreen_checkbox)
+
+    # ---------- UI ----------
     def _create_ui(self):
-        """Crea la interfaz de usuario de la vista"""
-        # Frame principal con padding
-        main_frame = self.design_manager.create_styled_frame(self.parent)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-        
-        # Título
-        title_label = self.design_manager.create_styled_label(
-            main_frame,
-            "CONFIGURACIÓN",
-            font_type='title'
-        )
-        title_label.pack(pady=(0, 20))
-        
-        # Frame de contenido con scroll
-        canvas = tk.Canvas(main_frame, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        
-        # Aplicar colores del tema
-        colors = self.design_manager.get_colors()
-        canvas.configure(bg=colors['content_bg'])
-        
-        # Sección: Tamaño de ventana
-        self._create_window_size_section(scrollable_frame)
-        
-        # Separador
-        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill=tk.X, pady=20)
-        
-        # Sección: Tamaño de fuente
-        self._create_font_size_section(scrollable_frame)
-        
-        # Separador
-        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill=tk.X, pady=20)
-        
-        # Sección: Pantalla completa
-        self._create_fullscreen_section(scrollable_frame)
-        
-        # Separador
-        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill=tk.X, pady=20)
-        
-        # Sección: Tema
-        self._create_theme_section(scrollable_frame)
-        
-        # Empaquetar canvas y scrollbar
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-    
+        root_frame = self.design_manager.create_styled_frame(self.parent)
+        root_frame.pack(fill=tk.BOTH, expand=True)
+
+        StyledLabel(
+            root_frame, "CONFIGURACIÓN", self.design_manager, font_type="title"
+        ).pack(pady=(0, 15))
+
+        scroll = ScrollableFrame(root_frame, self.design_manager)
+        scroll.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        self._create_window_size_section(scroll.interior)
+        ttk.Separator(scroll.interior, orient="horizontal").pack(fill=tk.X, pady=20)
+
+        self._create_font_size_section(scroll.interior)
+        ttk.Separator(scroll.interior, orient="horizontal").pack(fill=tk.X, pady=20)
+
+        self._create_fullscreen_section(scroll.interior)
+        ttk.Separator(scroll.interior, orient="horizontal").pack(fill=tk.X, pady=20)
+
+        self._create_theme_section(scroll.interior)
+
+    # ---------- secciones ----------
     def _create_window_size_section(self, parent):
-        """Crea la sección de configuración del tamaño de ventana"""
-        section_frame = ttk.Frame(parent)
-        section_frame.pack(fill=tk.X, pady=10)
-        
-        # Título de sección
-        section_label = self.design_manager.create_styled_label(
-            section_frame,
-            "Tamaño de Ventana",
-            font_type='bold'
+        section = ttk.LabelFrame(parent, text="Tamaño de Ventana", padding=10)
+        section.pack(fill=tk.X, pady=10)
+        section.columnconfigure(1, weight=1)
+
+        StyledLabel(section, "Presets:", self.design_manager).grid(
+            row=0, column=0, sticky="w"
         )
-        section_label.pack(anchor=tk.W, pady=(0, 10))
-        
-        # Frame para controles
-        controls_frame = ttk.Frame(section_frame)
-        controls_frame.pack(fill=tk.X, padx=20)
-        
-        # Ancho
-        width_frame = ttk.Frame(controls_frame)
-        width_frame.pack(fill=tk.X, pady=5)
-        
-        ttk.Label(width_frame, text="Ancho:", width=15).pack(side=tk.LEFT)
-        width_entry = ttk.Entry(width_frame, textvariable=self.window_width_var, width=10)
-        width_entry.pack(side=tk.LEFT, padx=5)
-        ttk.Label(width_frame, text="píxeles").pack(side=tk.LEFT)
-        
-        # Alto
-        height_frame = ttk.Frame(controls_frame)
-        height_frame.pack(fill=tk.X, pady=5)
-        
-        ttk.Label(height_frame, text="Alto:", width=15).pack(side=tk.LEFT)
-        height_entry = ttk.Entry(height_frame, textvariable=self.window_height_var, width=10)
-        height_entry.pack(side=tk.LEFT, padx=5)
-        ttk.Label(height_frame, text="píxeles").pack(side=tk.LEFT)
-        
-        # Botón aplicar
-        apply_button = self.design_manager.create_styled_button(
-            controls_frame,
-            "Aplicar Tamaño",
-            self._apply_window_size
+
+        size_combo = StyledCombobox(
+            section,
+            self.design_manager,
+            textvariable=self.size_var,
+            values=self.PRESET_SIZES,
+            state="readonly",
         )
-        apply_button.pack(pady=10)
-    
+        size_combo.grid(row=0, column=1, sticky="ew", padx=5, pady=2)
+
+        StyledButton(
+            section, "Aplicar", self._apply_window_size, self.design_manager
+        ).grid(row=1, column=0, columnspan=2, sticky="ew", pady=8)
+
     def _create_font_size_section(self, parent):
-        """Crea la sección de configuración del tamaño de fuente"""
-        section_frame = ttk.Frame(parent)
-        section_frame.pack(fill=tk.X, pady=10)
-        
-        # Título de sección
-        section_label = self.design_manager.create_styled_label(
-            section_frame,
-            "Tamaño de Fuente",
-            font_type='bold'
+        section = ttk.LabelFrame(parent, text="Tamaño de Fuente", padding=10)
+        section.pack(fill=tk.X, pady=10)
+        section.columnconfigure(0, weight=1)
+
+        value_lbl = StyledLabel(
+            section, f"Tamaño: {self.font_size_var.get()}pt", self.design_manager
         )
-        section_label.pack(anchor=tk.W, pady=(0, 10))
-        
-        # Frame para controles
-        controls_frame = ttk.Frame(section_frame)
-        controls_frame.pack(fill=tk.X, padx=20)
-        
-        # Frame para el slider
-        slider_frame = ttk.Frame(controls_frame)
-        slider_frame.pack(fill=tk.X, pady=5)
-        
-        # Etiqueta de valor actual
-        value_label = ttk.Label(slider_frame, text=f"Tamaño: {self.font_size_var.get()}pt")
-        value_label.pack()
-        
-        # Slider
-        font_scale = ttk.Scale(
-            slider_frame,
-            from_=8,
-            to=24,
+        value_lbl.grid(row=0, column=0, sticky="w")
+
+        scale = ttk.Scale(
+            section,
+            from_=10,
+            to=16,
             orient=tk.HORIZONTAL,
             variable=self.font_size_var,
-            command=lambda v: value_label.config(text=f"Tamaño: {int(float(v))}pt")
+            command=lambda v: value_lbl.config(text=f"Tamaño: {int(float(v))}pt"),
         )
-        font_scale.pack(fill=tk.X, pady=5)
-        
-        # Botón aplicar
-        apply_button = self.design_manager.create_styled_button(
-            controls_frame,
-            "Aplicar Tamaño de Fuente",
-            self._apply_font_size
-        )
-        apply_button.pack(pady=10)
-    
+        scale.grid(row=1, column=0, sticky="ew", pady=5)
+
+        StyledButton(
+            section,
+            "Aplicar tamaño de fuente",
+            self._apply_font_size,
+            self.design_manager,
+        ).grid(row=2, column=0, sticky="ew", pady=8)
+
     def _create_fullscreen_section(self, parent):
-        """Crea la sección de pantalla completa"""
-        section_frame = ttk.Frame(parent)
-        section_frame.pack(fill=tk.X, pady=10)
-        
-        # Título de sección
-        section_label = self.design_manager.create_styled_label(
-            section_frame,
-            "Modo Pantalla Completa",
-            font_type='bold'
-        )
-        section_label.pack(anchor=tk.W, pady=(0, 10))
-        
-        # Frame para controles
-        controls_frame = ttk.Frame(section_frame)
-        controls_frame.pack(fill=tk.X, padx=20)
-        
-        # Checkbox
-        fullscreen_check = ttk.Checkbutton(
-            controls_frame,
-            text="Activar pantalla completa",
+        section = ttk.LabelFrame(parent, text="Modo Pantalla Completa", padding=10)
+        section.pack(fill=tk.X, pady=10)
+
+        StyledCheckbutton(
+            section,
+            "Activar pantalla completa",
+            self.design_manager,
             variable=self.fullscreen_var,
-            command=self._toggle_fullscreen
-        )
-        fullscreen_check.pack(pady=5)
-        
-        # Nota
-        note_label = self.design_manager.create_styled_label(
-            controls_frame,
-            "Nota: Presiona F11 o ESC para salir del modo pantalla completa",
-            font_type='small'
-        )
-        note_label.pack(pady=5)
-    
+            command=self._toggle_fullscreen,
+        ).pack(anchor="w", pady=5)
+
+        StyledLabel(
+            section,
+            "Nota: usa F11 o ESC para alternar pantalla completa",
+            self.design_manager,
+            font_type="small",
+        ).pack(anchor="w", pady=5)
+
     def _create_theme_section(self, parent):
-        """Crea la sección de selección de tema"""
-        section_frame = ttk.Frame(parent)
-        section_frame.pack(fill=tk.X, pady=10)
-        
-        # Título de sección
-        section_label = self.design_manager.create_styled_label(
-            section_frame,
-            "Tema de la Aplicación",
-            font_type='bold'
-        )
-        section_label.pack(anchor=tk.W, pady=(0, 10))
-        
-        # Frame para controles
-        controls_frame = ttk.Frame(section_frame)
-        controls_frame.pack(fill=tk.X, padx=20)
-        
-        # Radio buttons para temas
-        theme_frame = ttk.Frame(controls_frame)
-        theme_frame.pack(pady=5)
-        
-        dark_radio = ttk.Radiobutton(
-            theme_frame,
-            text="Tema Oscuro",
+        section = ttk.LabelFrame(parent, text="Tema de la Aplicación", padding=10)
+        section.pack(fill=tk.X, pady=10)
+
+        radio_frame = ttk.Frame(section)
+        radio_frame.pack(anchor="w", pady=5)
+
+        StyledRadiobutton(
+            radio_frame,
+            "Tema Oscuro",
+            self.design_manager,
             variable=self.theme_var,
             value="dark",
-            command=self._change_theme
-        )
-        dark_radio.pack(side=tk.LEFT, padx=10)
-        
-        light_radio = ttk.Radiobutton(
-            theme_frame,
-            text="Tema Claro",
+            command=self._change_theme,
+        ).pack(side=tk.LEFT, padx=10)
+
+        StyledRadiobutton(
+            radio_frame,
+            "Tema Claro",
+            self.design_manager,
             variable=self.theme_var,
             value="light",
-            command=self._change_theme
-        )
-        light_radio.pack(side=tk.LEFT, padx=10)
-        
-        # Vista previa de colores
-        preview_frame = ttk.LabelFrame(controls_frame, text="Vista previa", padding=10)
-        preview_frame.pack(pady=10, fill=tk.X)
-        
-        self.preview_labels = []
-        preview_texts = ["Texto normal", "Botón de muestra", "Entrada de texto"]
-        
-        for text in preview_texts:
-            label = ttk.Label(preview_frame, text=text)
-            label.pack(pady=2)
-            self.preview_labels.append(label)
-    
+            command=self._change_theme,
+        ).pack(side=tk.LEFT, padx=10)
+
+    # ---------- acciones ----------
     def _apply_window_size(self):
-        """Aplica el nuevo tamaño de ventana"""
+        """Aplica el tamaño y centra la ventana en la pantalla."""
         try:
-            width = int(self.window_width_var.get())
-            height = int(self.window_height_var.get())
-            
-            # Validar valores
-            if width < 400 or height < 300:
-                messagebox.showwarning(
-                    "Tamaño inválido",
-                    "El tamaño mínimo de la ventana es 400x300 píxeles"
-                )
-                return
-            
-            if width > 3840 or height > 2160:
-                messagebox.showwarning(
-                    "Tamaño inválido",
-                    "El tamaño máximo de la ventana es 3840x2160 píxeles"
-                )
-                return
-            
-            # Obtener la ventana principal
+            width, height = map(int, self.size_var.get().split("x"))
+
             root = self.parent.winfo_toplevel()
-            
-            # Aplicar nuevo tamaño
-            root.geometry(f"{width}x{height}")
-            
-            # Actualizar configuración
-            self.config['window']['width'] = width
-            self.config['window']['height'] = height
-            
+            screen_w, screen_h = root.winfo_screenwidth(), root.winfo_screenheight()
+
+            # Coordenadas para centrar
+            x = max((screen_w - width) // 2, 0)
+            y = max((screen_h - height) // 2, 0)
+
+            root.geometry(f"{width}x{height}+{x}+{y}")
+
+            # Persistir en configuración
+            self.config["window"].update({"width": width, "height": height, "x": x, "y": y})
+
             messagebox.showinfo("Éxito", "Tamaño de ventana actualizado")
-            
-        except ValueError:
-            messagebox.showerror("Error", "Por favor ingrese valores numéricos válidos")
-    
+        except Exception:
+            messagebox.showerror("Error", "Formato de tamaño inválido")
+
     def _apply_font_size(self):
-        """Aplica el nuevo tamaño de fuente"""
-        new_size = self.font_size_var.get()
-        self.on_config_change('font_size', new_size)
+        self.on_config_change("font_size", self.font_size_var.get())
         messagebox.showinfo("Éxito", "Tamaño de fuente actualizado")
-    
+
     def _toggle_fullscreen(self):
-        """Activa/desactiva el modo pantalla completa"""
-        fullscreen = self.fullscreen_var.get()
-        self.on_config_change('fullscreen', fullscreen)
-    
+        self.on_config_change("fullscreen", self.fullscreen_var.get())
+
     def _change_theme(self):
-        """Cambia el tema de la aplicación"""
-        new_theme = self.theme_var.get()
-        self.on_config_change('theme', new_theme)
-        
-        # Actualizar vista previa
-        self._update_preview()
-    
-    def _update_preview(self):
-        """Actualiza la vista previa de colores"""
-        colors = self.design_manager.get_colors(self.theme_var.get())
-        
-        # Actualizar colores de las etiquetas de vista previa
-        for label in self.preview_labels:
-            label.configure(
-                background=colors['label_bg'],
-                foreground=colors['label_fg']
-            )
+        self.on_config_change("theme", self.theme_var.get())
+
+    # ---------- sincronía ----------
+    def _sync_fullscreen_checkbox(self, *_):
+        """Actualiza la casilla cuando el modo cambia externamente (F11/Esc)."""
+        root = self.parent.winfo_toplevel()
+        self.fullscreen_var.set(root.attributes("-fullscreen"))

@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from GUI.controller import ViewController
 from GUI.design import DesignManager
+from GUI.Components.styled_button import StyledButton
 
 class Application:
     def __init__(self, base_dir, config_path):
@@ -16,7 +17,8 @@ class Application:
         
         # Crear ventana principal
         self.root = tk.Tk()
-        self.root.title("Aplicación de Análisis")
+        self.root.title("Proyecto Grupal 1 - Grupo 5 - Simulador de CPU")
+        self.root.resizable(False, False)
         
         # Configurar diseño
         self.design_manager = DesignManager(self.base_dir, self.config)
@@ -110,26 +112,28 @@ class Application:
         separator = ttk.Separator(self.sidebar_frame, orient='horizontal')
         separator.pack(fill=tk.X, padx=10, pady=(0, 10))
         
-        # Frame para los botones
+        # Frame para los botones (con pesos para distribución uniforme)
         buttons_frame = tk.Frame(self.sidebar_frame, bg=colors['sidebar_bg'])
-        buttons_frame.pack(fill=tk.BOTH, expand=True, padx=5)
+        buttons_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=(0, 5))
         
-        # Botones del sidebar
-        self.sidebar_buttons = {}
+        # Configurar grid con pesos iguales para cada fila
         views = ["Presentación", "Compilador", "CPU", "Análisis", "Configuración", "Créditos"]
+        for i in range(len(views)):
+            buttons_frame.grid_rowconfigure(i, weight=1)
+        buttons_frame.grid_columnconfigure(0, weight=1)
+        
+        # Botones del sidebar usando el componente personalizado
+        self.sidebar_buttons = {}
         
         for i, view_name in enumerate(views):
-            # Frame para cada botón (para mejor control del padding)
-            btn_frame = tk.Frame(buttons_frame, bg=colors['sidebar_bg'])
-            btn_frame.pack(fill=tk.X, pady=2)
-            
-            btn = ttk.Button(
-                btn_frame,
+            btn = StyledButton(
+                buttons_frame,
                 text=view_name,
                 command=lambda v=view_name: self._on_view_button_click(v),
-                style='Sidebar.TButton'
+                design_manager=self.design_manager,
+                style_type='sidebar'
             )
-            btn.pack(fill=tk.X, padx=5)
+            btn.grid(row=i, column=0, sticky='ew', padx=5, pady=2)
             self.sidebar_buttons[view_name] = btn
         
         # Marcar el primer botón como activo
@@ -147,10 +151,7 @@ class Application:
     def _update_active_button(self, active_view):
         """Actualiza el estilo del botón activo"""
         for view_name, button in self.sidebar_buttons.items():
-            if view_name == active_view:
-                button.configure(style='Active.Sidebar.TButton')
-            else:
-                button.configure(style='Sidebar.TButton')
+            button.set_active(view_name == active_view)
     
     def _setup_events(self):
         """Configura los eventos de la ventana"""
@@ -187,6 +188,7 @@ class Application:
             for widget in self.sidebar_frame.winfo_children():
                 widget.destroy()
             self._create_sidebar()
+            self.controller.refresh_current_view()
         elif key == 'font_size':
             self.config['theme']['font_size'] = value
             self.design_manager.update_font_size(value)
@@ -206,18 +208,17 @@ class Application:
         self.controller.refresh_current_view()
     
     def _toggle_fullscreen(self):
-        """Alterna el modo pantalla completa"""
-        current = self.root.attributes('-fullscreen')
-        self.root.attributes('-fullscreen', not current)
-        self.config['window']['fullscreen'] = not current
-        self._save_config()
-    
+        """Alterna el modo pantalla completa y sincroniza checkbox"""
+        nuevo_estado = not self.root.attributes('-fullscreen')
+        # Actualiza ventana, config y notifica
+        self._on_config_change('fullscreen', nuevo_estado)
+        self.root.event_generate('<<FullscreenToggled>>')
+
     def _exit_fullscreen(self):
-        """Sale del modo pantalla completa"""
+        """Sale del modo pantalla completa y sincroniza checkbox"""
         if self.root.attributes('-fullscreen'):
-            self.root.attributes('-fullscreen', False)
-            self.config['window']['fullscreen'] = False
-            self._save_config()
+            self._on_config_change('fullscreen', False)
+            self.root.event_generate('<<FullscreenToggled>>')
     
     def _on_closing(self):
         """Maneja el cierre de la aplicación"""
