@@ -1,17 +1,85 @@
 instruction_patterns = {
-    'ADD':     ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
-    'SUB':     ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
-    'ADDI':    ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
-    'MOVI':    ['OPCODE', 'REG', 'COMMA', 'IMM'],
-    'STR':     ['OPCODE', 'REG', 'COMMA', 'MEM'],
-    'TEA':     ['OPCODE', 'IMM', 'COMMA', 'IMM'],
-    'STRK':    ['OPCODE', 'KWORD', 'IMM'],
-    'STRPASS': ['OPCODE', 'PASS', 'IMM'],
-    'NOP':     ['OPCODE'],
-    'LOGOUT':  ['OPCODE'],
-    'B':       ['OPCODE', 'LABEL'],
-    'PRINTL':  ['OPCODE', 'IMM'],
-    # Puedes agregar más aquí según avances
+    # Instrucciones de operación
+    'ADD': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'ADDS': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'KWORD'],
+    'SUB': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'ADC': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'SBC': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'MUL': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'DIV': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'AND': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'ORR': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'EOR': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'BIC': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'LSL': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'LSR': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'ASR': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+    'ROR': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
+
+    # Inmediatos
+    'ADDI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'SUBI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'ADCI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'SBCI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'MULI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'DIVI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'ANDI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'ORRI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'EORI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'BICI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'LSLI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'LSRI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'ASRI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+    'RORI': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'IMM'],
+
+    # Movimiento de datos
+    'MOV': ['OPCODE', 'REG', 'COMMA', 'REG'],
+    'MVN': ['OPCODE', 'REG', 'COMMA', 'REG'],
+
+    # Movimiento inmediato (con valor)
+    'MOVI': ['OPCODE', 'REG', 'COMMA', 'IMM'],
+    'MVNI': ['OPCODE', 'REG', 'COMMA', 'IMM'],
+
+    # Comparaciones
+    'CMP':  ['OPCODE', 'REG', 'COMMA', 'REG'],
+    'CMPS': ['OPCODE', 'REG', 'COMMA', 'PASS'],
+    'CMN':  ['OPCODE', 'REG', 'COMMA', 'REG'],
+    'TST':  ['OPCODE', 'REG', 'COMMA', 'REG'],
+    'TEQ':  ['OPCODE', 'REG', 'COMMA', 'REG'],
+
+    # Comparaciones inmediatas
+    'CMPI': ['OPCODE', 'REG', 'COMMA', 'IMM'],
+    'CMNI': ['OPCODE', 'REG', 'COMMA', 'IMM'],
+    'TSTI': ['OPCODE', 'REG', 'COMMA', 'IMM'],
+    'TEQI': ['OPCODE', 'REG', 'COMMA', 'IMM'],
+
+    # Operaciones de bifurcación
+    'B': ['OPCODE', 'LABEL'],
+    'BEQ': ['OPCODE', 'LABEL'],
+    'BNE': ['OPCODE', 'LABEL'],
+    'BLT': ['OPCODE', 'LABEL'],
+    'BGT': ['OPCODE', 'LABEL'],
+
+    # Operaciones especiales
+    'SWI': ['OPCODE'],
+    'NOP': ['OPCODE'],
+
+    # Instrucciones de almacenamiento
+    'LDR': ['OPCODE', 'REG', 'COMMA', 'MEM'],
+    'STR': ['OPCODE', 'REG', 'COMMA', 'MEM'],
+    'LDRB': ['OPCODE', 'REG', 'COMMA', 'MEM'],
+    'STRB': ['OPCODE', 'REG', 'COMMA', 'MEM'],
+
+    # Instrucciones de clave
+    'PRINTI': ['OPCODE', 'MEM',],
+    'PRINTS': ['OPCODE', 'MEM'],
+    'PRINTB': ['OPCODE', 'MEM'],
+    'LOGOUT': ['OPCODE'],
+    'STRK': ['OPCODE', 'KWORD', 'COMMA', 'IMM'],
+    'STRPASS': ['OPCODE', 'PASS', 'COMMA', 'IMM'],
+
+
+
 }
 
 def parse_tokens(tokens):

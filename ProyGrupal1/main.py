@@ -6,6 +6,13 @@ import os
 import sys
 import json
 from pathlib import Path
+import re
+
+
+from ProyGrupal.ISA.lexer import lexer
+from ProyGrupal.ISA.parser import parse_tokens
+from ProyGrupal.ISA.encoder import encode_instruction
+
 
 # Configurar el directorio base de la aplicación
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -55,6 +62,48 @@ def main():
     # Crear y ejecutar la aplicación
     app = Application(BASE_DIR, config_path)
     app.run()
+
+    input_file = "ProyGrupal/Assembly/programa.asm"
+    output_file = "ProyGrupal/Simulator/programa.bin"
+
+
+    # Compiler
+    binarios = []
+
+    with open(input_file) as f:
+        for lineno, line in enumerate(f, 1):
+            line = line.strip()
+
+            # Ignorar comentarios completos y líneas vacías
+            if not line or line.startswith(';'):
+                continue
+
+            # Detectar etiquetas
+            if re.match(r'^\.\w+:?$', line):
+                print(f"[Línea {lineno}] 🏷️ Etiqueta: {line}")
+                continue
+
+            try:
+                tokens = lexer(line)
+                valid, error = parse_tokens(tokens)
+
+                if not valid:
+                    print(f"[Línea {lineno}] ❌ Error de sintaxis: {error}")
+                else:
+                    print(f"[Línea {lineno}] ✅ Correcto: {tokens}")
+                    binary = encode_instruction(tokens)
+                    print(f"[Línea {lineno}] 🟢 Binario: {binary}")
+                    binarios.append(binary)
+
+            except Exception as e:
+                print(f"[Línea {lineno}] ⚠️ Excepción: {e}")
+
+    # Guardar binarios en archivo de salida
+    with open(output_file, 'w') as f:
+        for b in binarios:
+            f.write(b + '\n')
+
+    print(f"\n✅ Compilación completada. Binario guardado en: {output_file}")
 
 if __name__ == "__main__":
     main()

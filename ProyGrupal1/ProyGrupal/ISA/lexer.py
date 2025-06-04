@@ -8,7 +8,7 @@ token_specification = [
     ('KWORD',   r'k\d\.\d'),  # Claves criptográficas como k0.0
     ('OPCODE',  r'[A-Z]+'),  # Nombres de instrucciones
     ('IMM',     r'#0x[0-9A-Fa-f]+|#-?\d+'),  # Inmediatos hex o decimales
-    ('PASS',    r'\d'),  # Para STRPASS
+    ('PASS',    r'\d'),  # Para STRPASS y CMPS
     ('COMMA',   r','),  # Coma
     ('SKIP',    r'[ \t]+'),  # Espacios y tabs
     ('NEWLINE', r'\n'),  # Saltos de línea

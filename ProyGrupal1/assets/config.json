@@ -1,9 +1,9 @@
 {
     "window": {
-        "width": 1440,
-        "height": 900,
-        "x": 240,
-        "y": 90,
+        "width": 1024,
+        "height": 600,
+        "x": 448,
+        "y": 240,
         "fullscreen": false
     },
     "theme": {
