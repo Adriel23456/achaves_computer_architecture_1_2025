@@ -13,6 +13,7 @@ sys.path.insert(0, str(BASE_DIR))
 
 # Importar después de configurar el path
 from GUI.view_base import Application
+from ExtraPrograms.cpu_info_excel import CPUInfoExcel
 
 def ensure_config_exists():
     """Asegura que el archivo de configuración exista con valores por defecto"""
@@ -48,6 +49,10 @@ def ensure_config_exists():
     return config_path
 
 def main():
+    # Inicializar la clase de información de CPU
+    #cpu_excel = CPUInfoExcel()
+    #cpu_excel.reset() #Resetea la información de CPU al inicio
+    
     """Función principal de la aplicación"""
     # Asegurar que la configuración existe
     config_path = ensure_config_exists()

@@ -1,3 +1,4 @@
+from pathlib import Path
 import openpyxl
 from openpyxl import Workbook
 import threading
@@ -51,7 +52,7 @@ class TableControl:
                     cls._instance._initialized = False
         return cls._instance
     
-    def __init__(self, filename: str = "Assets/table_data.xlsx"):
+    def __init__(self, filename: str = None):
         """
         Inicializa TableControl con un archivo Excel.
         
@@ -60,14 +61,28 @@ class TableControl:
         """
         if self._initialized:
             return
+        
+        # Usar ruta absoluta basada en la ubicación de este archivo
+        current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+        parent_dir = current_dir.parent  # Subir un nivel desde ExtraPrograms
+        assets_dir = parent_dir / "Assets"
+
+        # Si se pasa un filename relativo, convertirlo a absoluto
+        if filename is None or filename == "Assets/table_data.xlsx":
+            self.filename = str(assets_dir / "table_data.xlsx")
+        else:
+            # Si es una ruta relativa, hacerla absoluta respecto al parent_dir
+            if not os.path.isabs(filename):
+                self.filename = str(parent_dir / filename)
+            else:
+                self.filename = filename
             
-        self.filename = filename
         self.action_queue = queue.Queue()
         self.workbook = None
         self.worksheet = None
         
         # Crear directorio Assets si no existe
-        os.makedirs("Assets", exist_ok=True)
+        os.makedirs(assets_dir, exist_ok=True)
         
         # Inicializar archivo Excel
         self._initialize_excel()
@@ -87,11 +102,6 @@ class TableControl:
                 self.worksheet = self.workbook.active
                 self.worksheet.title = "Datos"
                 
-                # Agregar encabezados de ejemplo
-                headers = ["String", "Integer", "Binary", "Hexadecimal", "Mixed"]
-                for idx, header in enumerate(headers, 1):
-                    self.worksheet.cell(row=1, column=idx, value=header)
-                
                 # Ajustar ancho de columnas
                 for column in self.worksheet.columns:
                     self.worksheet.column_dimensions[column[0].column_letter].width = 25
@@ -106,11 +116,13 @@ class TableControl:
     def _save_workbook(self):
         """Guarda el archivo Excel de forma segura"""
         try:
-            # Intentar guardar directamente
+            # Usar la ruta absoluta que ya está en self.filename
             self.workbook.save(self.filename)
         except PermissionError:
             # Si el archivo está abierto, intentar guardar con otro nombre
-            backup_name = f"Assets/table_data_temp.xlsx"
+            current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+            parent_dir = current_dir.parent
+            backup_name = str(parent_dir / "Assets" / "table_data_temp.xlsx")
             self.workbook.save(backup_name)
             print(f"⚠ Archivo principal bloqueado, guardado en: {backup_name}")
         except Exception as e:

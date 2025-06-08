@@ -1,0 +1,5 @@
+DELTA = 0x9e3779b9
+KEY = 0xdeadbeefdeadbeefdeadbeefdeadbeef
+
+Descifrado esperado:
+     Imagen visible
