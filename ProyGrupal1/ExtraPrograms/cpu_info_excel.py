@@ -1742,7 +1742,6 @@ class CPUInfoExcel:
         self.table.write(44, 15, "Block Status Out")
         self.table.write(42, 18, "Intentos")
         
-        
         if full:
             # Establecer todos los bloques de memoria general
             for row in range(1, 65):
