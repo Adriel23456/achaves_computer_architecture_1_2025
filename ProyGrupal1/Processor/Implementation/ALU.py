@@ -40,6 +40,7 @@ All data paths are 32 bits; results are masked to 32 bits.
 from __future__ import annotations
 from collections import namedtuple
 from typing import Tuple
+import ctypes
 
 Flags = namedtuple("Flags", "N Z C V")
 
@@ -93,8 +94,13 @@ class ALU:
             res, C_out, V_out = self._sub_with_borrow(A, B, carry_in & 1)
         elif op == 0b000100:  # MUL (lower 32 bits)
             res = (A * B) & MASK32
-        elif op == 0b000101:  # DIV (protect div‑by‑0)
-            res = 0 if B == 0 else int(A // B) & MASK32
+        elif op == 0b000101:  # DIV (signed)
+            if B == 0:
+                res = 0
+            else:
+                a_signed = ctypes.c_int32(A).value
+                b_signed = ctypes.c_int32(B).value
+                res = int(a_signed // b_signed) & MASK32
         elif op == 0b000110:  # AND
             res = A & B
         elif op == 0b000111:  # ORR
@@ -103,18 +109,32 @@ class ALU:
             res = A ^ B
         elif op == 0b001001:  # BIC
             res = A & (~B & MASK32)
-        elif op == 0b001010:  # LSL
-            shift = B & 0x1F
-            res = (A << shift) & MASK32
-            C_out = (A >> (32 - shift)) & 1 if shift else C_out
-        elif op == 0b001011:  # LSR
-            shift = B & 0x1F
-            res = (A & MASK32) >> shift if shift else 0
-            C_out = (A >> (shift - 1)) & 1 if shift else C_out
-        elif op == 0b001100:  # ASR
-            shift = B & 0x1F
-            res = (A >> shift) if shift else A
-            C_out = (A >> (shift - 1)) & 1 if shift else C_out
+        elif op == 0b001010:  # LSL (custom 32-bit safe)
+            if B >= 32:
+                res = 0
+                C_out = (A >> 0) & 1  # bit 0 original como último bit en salir
+            else:
+                shift = B
+                res = (A << shift) & MASK32
+                C_out = (A >> (32 - shift)) & 1 if shift else 0
+        elif op == 0b001011:  # LSR (custom 32-bit safe)
+            if B >= 32:
+                res = 0
+                C_out = (A >> 31) & 1  # bit más significativo original como último bit en salir
+            else:
+                shift = B
+                res = (A & MASK32) >> shift if shift else A
+                C_out = (A >> (shift - 1)) & 1 if shift else 0
+
+        elif op == 0b001100:  # ASR (signed)
+            shift = B
+            a_signed = ctypes.c_int32(A).value
+            if shift >= 32:
+                res = -1 if a_signed < 0 else 0
+            else:
+                res = a_signed >> shift
+            C_out = (A >> (shift - 1)) & 1 if 0 < shift < 32 else 0
+
         elif op == 0b001101:  # ROR
             rot = B & 0x1F
             rot %= 32
