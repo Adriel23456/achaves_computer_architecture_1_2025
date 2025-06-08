@@ -1,0 +1,34 @@
+class Mux:
+    def __init__(self):
+        self.input0 = 0
+        self.input1 = 0
+        self.select = 0
+
+    def output(self):
+        return self.input1 if self.select else self.input0
+
+
+class ProgramCounter:
+    def __init__(self):
+        self.pc = 0 #dirección de memoria de la instruccion, HAY QUE TRAER VALORES DEL EXCEL ACÁ O HACER FUNCION APARTE
+        self.result_w = 0 #ALUOutW_C
+        self.pcsrc_w = 0 #PCSrcW
+        self.mux = Mux()
+
+    def clock_cycle(self):
+        # no entiendo bien aún como estamos manejando el clock, dejo acá una simulación que supongo podría ser llamada cada ciclo de reloj
+        self.mux.input0 = self.pc + 8 #esta suma tambien verificarla de manera que funcione bien con el excel
+        self.mux.input1 = self.result_w
+        self.mux.select = self.pcsrc_w
+
+        # aplicar salida del MUX como nuevo PC
+        self.pc = self.mux.output()
+
+#    def set_result_w(self, value):
+#        self.result_w = value
+
+#    def set_pcsrc_w(self, value):
+#        self.pcsrc_w = value
+
+    def get_pc(self):
+        return self.pc
