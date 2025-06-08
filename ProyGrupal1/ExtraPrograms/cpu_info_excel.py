@@ -18,28 +18,50 @@ class CPUInfoExcel:
     # Señales del Decode
     #=================================================================================
     def write_pc_prime(self, value):
+        """Escribe el valor de PC' en la cola de acciones"""
         self.table.write(1, 2, value)
-    
-    def read_pc_prime(self, callback=None):
-        self.table.read(1, 2, callback)
-    
+
+    def read_pc_prime(self):
+        """
+        Lee inmediatamente el valor de PC' 
+        
+        Returns:
+            Tuple[DataType, Any]: Tupla con el tipo de dato y el valor de PC'
+        """
+        return self.table.read_immediate(1, 2)
+
     def write_pcf(self, value):
+        """Escribe el valor de PCF en la cola de acciones"""
         self.table.write(2, 2, value)
-    
-    def read_pcf(self, callback=None):
-        self.table.read(2, 2, callback)
-    
+
+    def read_pcf(self):
+        """
+        Lee inmediatamente el valor de PCF
+        
+        Returns:
+            Tuple[DataType, Any]: Tupla con el tipo de dato y el valor de PCF
+        """
+        return self.table.read_immediate(2, 2)
+
     def write_pcplus8f(self, value):
+        """Escribe el valor de PCPlus8F en la cola de acciones"""
         self.table.write(3, 2, value)
-    
-    def read_pcplus8f(self, callback=None):
-        self.table.read(3, 2, callback)
-    
+
+    def read_pcplus8f(self):
+        """
+        Lee inmediatamente el valor de PCPlus8F
+        
+        Returns:
+            Tuple[DataType, Any]: Tupla con el tipo de dato y el valor de PCPlus8F
+        """
+        return self.table.read_immediate(3, 2)
+
     def write_instrf(self, value):
+        """Escribe el valor de InstrF en la cola de acciones"""
         self.table.write(4, 2, value)
-    
-    def read_instrf(self, callback=None):
-        self.table.read(4, 2, callback)
+
+    def read_instrf(self):
+        return self.table.read_immediate(4, 2)
         
     #=================================================================================
     # Señales del Fetch
@@ -47,388 +69,388 @@ class CPUInfoExcel:
     def write_instrd(self, value):
         self.table.write(1, 5, value)
     
-    def read_instrd(self, callback=None):
-        self.table.read(1, 5, callback)
+    def read_instrd(self):
+        return self.table.read_immediate(1, 5)
     
     def write_pcf_d(self, value):
         self.table.write(2, 5, value)
     
-    def read_pcf_d(self, callback=None):
-        self.table.read(2, 5, callback)
+    def read_pcf_d(self):
+        return self.table.read_immediate(2, 5)
     
     def write_55_52(self, value):
         self.table.write(3, 5, value)
     
-    def read_55_52(self, callback=None):
-        self.table.read(3, 5, callback)
+    def read_55_52(self):
+        return self.table.read_immediate(3, 5)
     
     def write_63_56(self, value):
         self.table.write(4, 5, value)
     
-    def read_63_56(self, callback=None):
-        self.table.read(4, 5, callback)
+    def read_63_56(self):
+        return self.table.read_immediate(4, 5)
     
     def write_47_44(self, value):
         self.table.write(5, 5, value)
     
-    def read_47_44(self, callback=None):
-        self.table.read(5, 5, callback)
+    def read_47_44(self):
+        return self.table.read_immediate(5, 5)
     
     def write_43_40(self, value):
         self.table.write(6, 5, value)
     
-    def read_43_40(self, callback=None):
-        self.table.read(6, 5, callback)
+    def read_43_40(self):
+        return self.table.read_immediate(6, 5)
     
     def write_39_8(self, value):
         self.table.write(7, 5, value)
     
-    def read_39_8(self, callback=None):
-        self.table.read(7, 5, callback)
+    def read_39_8(self):
+        return self.table.read_immediate(7, 5)
     
     def write_51_48(self, value):
         self.table.write(8, 5, value)
     
-    def read_51_48(self, callback=None):
-        self.table.read(8, 5, callback)
+    def read_51_48(self):
+        return self.table.read_immediate(8, 5)
     
     def write_memwritep(self, value):
         self.table.write(9, 5, value)
     
-    def read_memwritep(self, callback=None):
-        self.table.read(9, 5, callback)
+    def read_memwritep(self):
+        return self.table.read_immediate(9, 5)
     
     def write_memwritev(self, value):
         self.table.write(10, 5, value)
     
-    def read_memwritev(self, callback=None):
-        self.table.read(10, 5, callback)
+    def read_memwritev(self):
+        return self.table.read_immediate(10, 5)
     
     def write_registerina(self, value):
         self.table.write(11, 5, value)
     
-    def read_registerina(self, callback=None):
-        self.table.read(11, 5, callback)
+    def read_registerina(self):
+        return self.table.read_immediate(11, 5)
     
     def write_registerinb(self, value):
         self.table.write(12, 5, value)
     
-    def read_registerinb(self, callback=None):
-        self.table.read(12, 5, callback)
+    def read_registerinb(self):
+        return self.table.read_immediate(12, 5)
     
     def write_immediateop(self, value):
         self.table.write(13, 5, value)
     
-    def read_immediateop(self, callback=None):
-        self.table.read(13, 5, callback)
+    def read_immediateop(self):
+        return self.table.read_immediate(13, 5)
     
     def write_branche(self, value):
         self.table.write(14, 5, value)
     
-    def read_branche(self, callback=None):
-        self.table.read(14, 5, callback)
+    def read_branche(self):
+        return self.table.read_immediate(14, 5)
     
     def write_logoutd(self, value):
         self.table.write(15, 5, value)
     
-    def read_logoutd(self, callback=None):
-        self.table.read(15, 5, callback)
+    def read_logoutd(self):
+        return self.table.read_immediate(15, 5)
     
     def write_comsd(self, value):
         self.table.write(16, 5, value)
     
-    def read_comsd(self, callback=None):
-        self.table.read(16, 5, callback)
+    def read_comsd(self):
+        return self.table.read_immediate(16, 5)
     
     def write_printend(self, value):
         self.table.write(17, 5, value)
     
-    def read_printend(self, callback=None):
-        self.table.read(17, 5, callback)
+    def read_printend(self):
+        return self.table.read_immediate(17, 5)
     
     def write_regwritesd(self, value):
         self.table.write(18, 5, value)
     
-    def read_regwritesd(self, callback=None):
-        self.table.read(18, 5, callback)
+    def read_regwritesd(self):
+        return self.table.read_immediate(18, 5)
     
     def write_regwriterd(self, value):
         self.table.write(19, 5, value)
     
-    def read_regwriterd(self, callback=None):
-        self.table.read(19, 5, callback)
+    def read_regwriterd(self):
+        return self.table.read_immediate(19, 5)
     
     def write_memopd(self, value):
         self.table.write(20, 5, value)
     
-    def read_memopd(self, callback=None):
-        self.table.read(20, 5, callback)
+    def read_memopd(self):
+        return self.table.read_immediate(20, 5)
     
     def write_memwritegd(self, value):
         self.table.write(21, 5, value)
     
-    def read_memwritegd(self, callback=None):
-        self.table.read(21, 5, callback)
+    def read_memwritegd(self):
+        return self.table.read_immediate(21, 5)
     
     def write_memwritedd(self, value):
         self.table.write(22, 5, value)
     
-    def read_memwritedd(self, callback=None):
-        self.table.read(22, 5, callback)
+    def read_memwritedd(self):
+        return self.table.read_immediate(22, 5)
     
     def write_membyted(self, value):
         self.table.write(23, 5, value)
     
-    def read_membyted(self, callback=None):
-        self.table.read(23, 5, callback)
+    def read_membyted(self):
+        return self.table.read_immediate(23, 5)
     
     def write_pcsrcd(self, value):
         self.table.write(24, 5, value)
     
-    def read_pcsrcd(self, callback=None):
-        self.table.read(24, 5, callback)
+    def read_pcsrcd(self):
+        return self.table.read_immediate(24, 5)
     
     def write_flagsupdd(self, value):
         self.table.write(25, 5, value)
     
-    def read_flagsupdd(self, callback=None):
-        self.table.read(25, 5, callback)
+    def read_flagsupdd(self):
+        return self.table.read_immediate(25, 5)
     
     def write_alusrcd(self, value):
         self.table.write(26, 5, value)
     
-    def read_alusrcd(self, callback=None):
-        self.table.read(26, 5, callback)
+    def read_alusrcd(self):
+        return self.table.read_immediate(26, 5)
     
     def write_branchopd(self, value):
         self.table.write(27, 5, value)
     
-    def read_branchopd(self, callback=None):
-        self.table.read(27, 5, callback)
+    def read_branchopd(self):
+        return self.table.read_immediate(27, 5)
     
     def write_rdr1_a(self, value):
         self.table.write(28, 5, value)
     
-    def read_rdr1_a(self, callback=None):
-        self.table.read(28, 5, callback)
+    def read_rdr1_a(self):
+        return self.table.read_immediate(28, 5)
     
     def write_rdr2_a(self, value):
         self.table.write(29, 5, value)
     
-    def read_rdr2_a(self, callback=None):
-        self.table.read(29, 5, callback)
+    def read_rdr2_a(self):
+        return self.table.read_immediate(29, 5)
     
     def write_rdw1_a(self, value):
         self.table.write(30, 5, value)
     
-    def read_rdw1_a(self, callback=None):
-        self.table.read(30, 5, callback)
+    def read_rdw1_a(self):
+        return self.table.read_immediate(30, 5)
     
     def write_rdw2_a(self, value):
         self.table.write(31, 5, value)
     
-    def read_rdw2_a(self, callback=None):
-        self.table.read(31, 5, callback)
+    def read_rdw2_a(self):
+        return self.table.read_immediate(31, 5)
     
     def write_kd_a(self, value):
         self.table.write(32, 5, value)
     
-    def read_kd_a(self, callback=None):
-        self.table.read(32, 5, callback)
+    def read_kd_a(self):
+        return self.table.read_immediate(32, 5)
     
     def write_rd_a(self, value):
         self.table.write(33, 5, value)
     
-    def read_rd_a(self, callback=None):
-        self.table.read(33, 5, callback)
+    def read_rd_a(self):
+        return self.table.read_immediate(33, 5)
     
     def write_srcad_0(self, value):
         self.table.write(34, 5, value)
     
-    def read_srcad_0(self, callback=None):
-        self.table.read(34, 5, callback)
+    def read_srcad_0(self):
+        return self.table.read_immediate(34, 5)
     
     def write_srcad(self, value):
         self.table.write(35, 5, value)
     
-    def read_srcad(self, callback=None):
-        self.table.read(35, 5, callback)
+    def read_srcad(self):
+        return self.table.read_immediate(35, 5)
     
     def write_rd_speciald(self, value):
         self.table.write(36, 5, value)
     
-    def read_rd_speciald(self, callback=None):
-        self.table.read(36, 5, callback)
+    def read_rd_speciald(self):
+        return self.table.read_immediate(36, 5)
     
     def write_srcbd(self, value):
         self.table.write(37, 5, value)
     
-    def read_srcbd(self, callback=None):
-        self.table.read(37, 5, callback)
+    def read_srcbd(self):
+        return self.table.read_immediate(37, 5)
     #=================================================================================
     # Señales del Execute
     #=================================================================================
     def write_regwritese(self, value):
         self.table.write(1, 8, value)
     
-    def read_regwritese(self, callback=None):
-        self.table.read(1, 8, callback)
+    def read_regwritese(self):
+        return self.table.read_immediate(1, 8)
     
     def write_regwritere(self, value):
         self.table.write(2, 8, value)
     
-    def read_regwritere(self, callback=None):
-        self.table.read(2, 8, callback)
+    def read_regwritere(self):
+        return self.table.read_immediate(2, 8)
     
     def write_memope(self, value):
         self.table.write(3, 8, value)
     
-    def read_memope(self, callback=None):
-        self.table.read(3, 8, callback)
+    def read_memope(self):
+        return self.table.read_immediate(3, 8)
     
     def write_memwritege(self, value):
         self.table.write(4, 8, value)
     
-    def read_memwritege(self, callback=None):
-        self.table.read(4, 8, callback)
+    def read_memwritege(self):
+        return self.table.read_immediate(4, 8)
     
     def write_memwritede(self, value):
         self.table.write(5, 8, value)
     
-    def read_memwritede(self, callback=None):
-        self.table.read(5, 8, callback)
+    def read_memwritede(self):
+        return self.table.read_immediate(5, 8)
     
     def write_membytee(self, value):
         self.table.write(6, 8, value)
     
-    def read_membytee(self, callback=None):
-        self.table.read(6, 8, callback)
+    def read_membytee(self):
+        return self.table.read_immediate(6, 8)
     
     def write_pcsrce(self, value):
         self.table.write(7, 8, value)
     
-    def read_pcsrce(self, callback=None):
-        self.table.read(7, 8, callback)
+    def read_pcsrce(self):
+        return self.table.read_immediate(7, 8)
     
     def write_flagsupde(self, value):
         self.table.write(8, 8, value)
     
-    def read_flagsupde(self, callback=None):
-        self.table.read(8, 8, callback)
+    def read_flagsupde(self):
+        return self.table.read_immediate(8, 8)
     
     def write_alusrce(self, value):
         self.table.write(9, 8, value)
     
-    def read_alusrce(self, callback=None):
-        self.table.read(9, 8, callback)
+    def read_alusrce(self):
+        return self.table.read_immediate(9, 8)
     
     def write_branchope(self, value):
         self.table.write(10, 8, value)
     
-    def read_branchope(self, callback=None):
-        self.table.read(10, 8, callback)
+    def read_branchope(self):
+        return self.table.read_immediate(10, 8)
     
     def write_printene(self, value):
         self.table.write(11, 8, value)
     
-    def read_printene(self, callback=None):
-        self.table.read(11, 8, callback)
+    def read_printene(self):
+        return self.table.read_immediate(11, 8)
     
     def write_comse(self, value):
         self.table.write(12, 8, value)
     
-    def read_comse(self, callback=None):
-        self.table.read(12, 8, callback)
+    def read_comse(self):
+        return self.table.read_immediate(12, 8)
     
     def write_logoute(self, value):
         self.table.write(13, 8, value)
     
-    def read_logoute(self, callback=None):
-        self.table.read(13, 8, callback)
+    def read_logoute(self):
+        return self.table.read_immediate(13, 8)
     
     def write_branchope_2(self, value):
         self.table.write(14, 8, value)
     
-    def read_branchope_2(self, callback=None):
-        self.table.read(14, 8, callback)
+    def read_branchope_2(self):
+        return self.table.read_immediate(14, 8)
     
     def write_flagse(self, value):
         self.table.write(15, 8, value)
     
-    def read_flagse(self, callback=None):
-        self.table.read(15, 8, callback)
+    def read_flagse(self):
+        return self.table.read_immediate(15, 8)
     
     def write_srcae(self, value):
         self.table.write(16, 8, value)
     
-    def read_srcae(self, callback=None):
-        self.table.read(16, 8, callback)
+    def read_srcae(self):
+        return self.table.read_immediate(16, 8)
     
     def write_rd_speciale(self, value):
         self.table.write(17, 8, value)
     
-    def read_rd_speciale(self, callback=None):
-        self.table.read(17, 8, callback)
+    def read_rd_speciale(self):
+        return self.table.read_immediate(17, 8)
     
     def write_srcbe(self, value):
         self.table.write(18, 8, value)
     
-    def read_srcbe(self, callback=None):
-        self.table.read(18, 8, callback)
+    def read_srcbe(self):
+        return self.table.read_immediate(18, 8)
     
     def write_flags_prime(self, value):
         self.table.write(19, 8, value)
     
-    def read_flags_prime(self, callback=None):
-        self.table.read(19, 8, callback)
+    def read_flags_prime(self):
+        return self.table.read_immediate(19, 8)
     
     def write_aluflagout(self, value):
         self.table.write(20, 8, value)
     
-    def read_aluflagout(self, callback=None):
-        self.table.read(20, 8, callback)
+    def read_aluflagout(self):
+        return self.table.read_immediate(20, 8)
     
     def write_carryin(self, value):
         self.table.write(21, 8, value)
     
-    def read_carryin(self, callback=None):
-        self.table.read(21, 8, callback)
+    def read_carryin(self):
+        return self.table.read_immediate(21, 8)
     
     def write_condexe(self, value):
         self.table.write(22, 8, value)
     
-    def read_condexe(self, callback=None):
-        self.table.read(22, 8, callback)
+    def read_condexe(self):
+        return self.table.read_immediate(22, 8)
     
     def write_safeflagsout(self, value):
         self.table.write(23, 8, value)
     
-    def read_safeflagsout(self, callback=None):
-        self.table.read(23, 8, callback)
+    def read_safeflagsout(self):
+        return self.table.read_immediate(23, 8)
     
     def write_logininblocke(self, value):
         self.table.write(24, 8, value)
     
-    def read_logininblocke(self, callback=None):
-        self.table.read(24, 8, callback)
+    def read_logininblocke(self):
+        return self.table.read_immediate(24, 8)
     
     def write_rde(self, value):
         self.table.write(25, 8, value)
     
-    def read_rde(self, callback=None):
-        self.table.read(25, 8, callback)
+    def read_rde(self):
+        return self.table.read_immediate(25, 8)
     
     def write_aluresulte(self, value):
         self.table.write(26, 8, value)
     
-    def read_aluresulte(self, callback=None):
-        self.table.read(26, 8, callback)
+    def read_aluresulte(self):
+        return self.table.read_immediate(26, 8)
     
     def write_pcsrc_and_e(self, value):
         self.table.write(27, 8, value)
     
-    def read_pcsrc_and_e(self, callback=None):
-        self.table.read(27, 8, callback)
+    def read_pcsrc_and_e(self):
+        return self.table.read_immediate(27, 8)
     
     #=================================================================================
     # Señales del Memory
@@ -436,110 +458,110 @@ class CPUInfoExcel:
     def write_regwritesm(self, value):
         self.table.write(1, 11, value)
     
-    def read_regwritesm(self, callback=None):
-        self.table.read(1, 11, callback)
+    def read_regwritesm(self):
+        return self.table.read_immediate(1, 11)
     
     def write_regwriterm(self, value):
         self.table.write(2, 11, value)
     
-    def read_regwriterm(self, callback=None):
-        self.table.read(2, 11, callback)
+    def read_regwriterm(self):
+        return self.table.read_immediate(2, 11)
     
     def write_memopm(self, value):
         self.table.write(3, 11, value)
     
-    def read_memopm(self, callback=None):
-        self.table.read(3, 11, callback)
+    def read_memopm(self):
+        return self.table.read_immediate(3, 11)
     
     def write_memwritegm(self, value):
         self.table.write(4, 11, value)
     
-    def read_memwritegm(self, callback=None):
-        self.table.read(4, 11, callback)
+    def read_memwritegm(self):
+        return self.table.read_immediate(4, 11)
     
     def write_memwritedm(self, value):
         self.table.write(5, 11, value)
     
-    def read_memwritedm(self, callback=None):
-        self.table.read(5, 11, callback)
+    def read_memwritedm(self):
+        return self.table.read_immediate(5, 11)
     
     def write_membytem(self, value):
         self.table.write(6, 11, value)
     
-    def read_membytem(self, callback=None):
-        self.table.read(6, 11, callback)
+    def read_membytem(self):
+        return self.table.read_immediate(6, 11)
     
     def write_pcsrcm(self, value):
         self.table.write(7, 11, value)
     
-    def read_pcsrcm(self, callback=None):
-        self.table.read(7, 11, callback)
+    def read_pcsrcm(self):
+        return self.table.read_immediate(7, 11)
     
     def write_printenm(self, value):
         self.table.write(8, 11, value)
     
-    def read_printenm(self, callback=None):
-        self.table.read(8, 11, callback)
+    def read_printenm(self):
+        return self.table.read_immediate(8, 11)
     
     def write_aluoutm(self, value):
         self.table.write(9, 11, value)
     
-    def read_aluoutm(self, callback=None):
-        self.table.read(9, 11, callback)
+    def read_aluoutm(self):
+        return self.table.read_immediate(9, 11)
     
     def write_rd_specialm(self, value):
         self.table.write(10, 11, value)
     
-    def read_rd_specialm(self, callback=None):
-        self.table.read(10, 11, callback)
+    def read_rd_specialm(self):
+        return self.table.read_immediate(10, 11)
     
     def write_rdm(self, value):
         self.table.write(11, 11, value)
     
-    def read_rdm(self, callback=None):
-        self.table.read(11, 11, callback)
+    def read_rdm(self):
+        return self.table.read_immediate(11, 11)
     
     def write_rd_specialm_b(self, value):
         self.table.write(12, 11, value)
     
-    def read_rd_specialm_b(self, callback=None):
-        self.table.read(12, 11, callback)
+    def read_rd_specialm_b(self):
+        return self.table.read_immediate(12, 11)
     
     def write_rd_specialm_c(self, value):
         self.table.write(13, 11, value)
     
-    def read_rd_specialm_c(self, callback=None):
-        self.table.read(13, 11, callback)
+    def read_rd_specialm_c(self):
+        return self.table.read_immediate(13, 11)
     
     def write_rd_specialm_d(self, value):
         self.table.write(14, 11, value)
     
-    def read_rd_specialm_d(self, callback=None):
-        self.table.read(14, 11, callback)
+    def read_rd_specialm_d(self):
+        return self.table.read_immediate(14, 11)
     
     def write_rd_specialm_e(self, value):
         self.table.write(15, 11, value)
     
-    def read_rd_specialm_e(self, callback=None):
-        self.table.read(15, 11, callback)
+    def read_rd_specialm_e(self):
+        return self.table.read_immediate(15, 11)
     
     def write_rd_g_a(self, value):
         self.table.write(16, 11, value)
     
-    def read_rd_g_a(self, callback=None):
-        self.table.read(16, 11, callback)
+    def read_rd_g_a(self):
+        return self.table.read_immediate(16, 11)
     
     def write_rd_d_a(self, value):
         self.table.write(17, 11, value)
     
-    def read_rd_d_a(self, callback=None):
-        self.table.read(17, 11, callback)
+    def read_rd_d_a(self):
+        return self.table.read_immediate(17, 11)
     
     def write_aluoutm_o(self, value):
         self.table.write(18, 11, value)
     
-    def read_aluoutm_o(self, callback=None):
-        self.table.read(18, 11, callback)
+    def read_aluoutm_o(self):
+        return self.table.read_immediate(18, 11)
     
     #=================================================================================
     # Señales del WriteBack
@@ -547,74 +569,74 @@ class CPUInfoExcel:
     def write_regwritesm_wb(self, value):
         self.table.write(1, 14, value)
     
-    def read_regwritesm_wb(self, callback=None):
-        self.table.read(1, 14, callback)
+    def read_regwritesm_wb(self):
+        return self.table.read_immediate(1, 14)
     
     def write_regwriterm_wb(self, value):
         self.table.write(2, 14, value)
     
-    def read_regwriterm_wb(self, callback=None):
-        self.table.read(2, 14, callback)
+    def read_regwriterm_wb(self):
+        return self.table.read_immediate(2, 14)
     
     def write_pcsrcm_wb(self, value):
         self.table.write(3, 14, value)
     
-    def read_pcsrcm_wb(self, callback=None):
-        self.table.read(3, 14, callback)
+    def read_pcsrcm_wb(self):
+        return self.table.read_immediate(3, 14)
     
     def write_membytem_wb(self, value):
         self.table.write(4, 14, value)
     
-    def read_membytem_wb(self, callback=None):
-        self.table.read(4, 14, callback)
+    def read_membytem_wb(self):
+        return self.table.read_immediate(4, 14)
     
     def write_printenm_wb(self, value):
         self.table.write(5, 14, value)
     
-    def read_printenm_wb(self, callback=None):
-        self.table.read(5, 14, callback)
+    def read_printenm_wb(self):
+        return self.table.read_immediate(5, 14)
     
     def write_aluoutw(self, value):
         self.table.write(6, 14, value)
     
-    def read_aluoutw(self, callback=None):
-        self.table.read(6, 14, callback)
+    def read_aluoutw(self):
+        return self.table.read_immediate(6, 14)
     
     def write_aluoutw_b(self, value):
         self.table.write(7, 14, value)
     
-    def read_aluoutw_b(self, callback=None):
-        self.table.read(7, 14, callback)
+    def read_aluoutw_b(self):
+        return self.table.read_immediate(7, 14)
     
     def write_aluoutw_c(self, value):
         self.table.write(8, 14, value)
     
-    def read_aluoutw_c(self, callback=None):
-        self.table.read(8, 14, callback)
+    def read_aluoutw_c(self):
+        return self.table.read_immediate(8, 14)
     
     def write_int_pl(self, value):
         self.table.write(9, 14, value)
     
-    def read_int_pl(self, callback=None):
-        self.table.read(9, 14, callback)
+    def read_int_pl(self):
+        return self.table.read_immediate(9, 14)
     
     def write_acii_pl(self, value):
         self.table.write(10, 14, value)
     
-    def read_acii_pl(self, callback=None):
-        self.table.read(10, 14, callback)
+    def read_acii_pl(self):
+        return self.table.read_immediate(10, 14)
     
     def write_b_pl(self, value):
         self.table.write(11, 14, value)
     
-    def read_b_pl(self, callback=None):
-        self.table.read(11, 14, callback)
+    def read_b_pl(self):
+        return self.table.read_immediate(11, 14)
     
     def write_rdw(self, value):
         self.table.write(12, 14, value)
     
-    def read_rdw(self, callback=None):
-        self.table.read(12, 14, callback)
+    def read_rdw(self):
+        return self.table.read_immediate(12, 14)
     
     #=================================================================================
     # Valores actuales de registros generales
@@ -622,98 +644,98 @@ class CPUInfoExcel:
     def write_r0(self, value):
         self.table.write(1, 17, 0x00000000)
     
-    def read_r0(self, callback=None):
-        self.table.read(1, 17, callback)
+    def read_r0(self):
+        return self.table.read_immediate(1, 17)
     
     def write_r1(self, value):
         self.table.write(2, 17, value)
     
-    def read_r1(self, callback=None):
-        self.table.read(2, 17, callback)
+    def read_r1(self):
+        return self.table.read_immediate(2, 17)
     
     def write_r2(self, value):
         self.table.write(3, 17, value)
     
-    def read_r2(self, callback=None):
-        self.table.read(3, 17, callback)
+    def read_r2(self):
+        return self.table.read_immediate(3, 17)
     
     def write_r3(self, value):
         self.table.write(4, 17, value)
     
-    def read_r3(self, callback=None):
-        self.table.read(4, 17, callback)
+    def read_r3(self):
+        return self.table.read_immediate(4, 17)
     
     def write_r4(self, value):
         self.table.write(5, 17, value)
     
-    def read_r4(self, callback=None):
-        self.table.read(5, 17, callback)
+    def read_r4(self):
+        return self.table.read_immediate(5, 17)
     
     def write_r5(self, value):
         self.table.write(6, 17, value)
     
-    def read_r5(self, callback=None):
-        self.table.read(6, 17, callback)
+    def read_r5(self):
+        return self.table.read_immediate(6, 17)
     
     def write_r6(self, value):
         self.table.write(7, 17, value)
     
-    def read_r6(self, callback=None):
-        self.table.read(7, 17, callback)
+    def read_r6(self):
+        return self.table.read_immediate(7, 17)
     
     def write_r7(self, value):
         self.table.write(8, 17, value)
     
-    def read_r7(self, callback=None):
-        self.table.read(8, 17, callback)
+    def read_r7(self):
+        return self.table.read_immediate(8, 17)
     
     def write_r8(self, value):
         self.table.write(9, 17, value)
     
-    def read_r8(self, callback=None):
-        self.table.read(9, 17, callback)
+    def read_r8(self):
+        return self.table.read_immediate(9, 17)
     
     def write_r9(self, value):
         self.table.write(10, 17, value)
     
-    def read_r9(self, callback=None):
-        self.table.read(10, 17, callback)
+    def read_r9(self):
+        return self.table.read_immediate(10, 17)
     
     def write_r10(self, value):
         self.table.write(11, 17, value)
     
-    def read_r10(self, callback=None):
-        self.table.read(11, 17, callback)
+    def read_r10(self):
+        return self.table.read_immediate(11, 17)
     
     def write_r11(self, value):
         self.table.write(12, 17, value)
     
-    def read_r11(self, callback=None):
-        self.table.read(12, 17, callback)
+    def read_r11(self):
+        return self.table.read_immediate(12, 17)
     
     def write_r12(self, value):
         self.table.write(13, 17, value)
     
-    def read_r12(self, callback=None):
-        self.table.read(13, 17, callback)
+    def read_r12(self):
+        return self.table.read_immediate(13, 17)
     
     def write_r13(self, value):
         self.table.write(14, 17, value)
     
-    def read_r13(self, callback=None):
-        self.table.read(14, 17, callback)
+    def read_r13(self):
+        return self.table.read_immediate(14, 17)
     
     def write_r14(self, value):
         self.table.write(15, 17, value)
     
-    def read_r14(self, callback=None):
-        self.table.read(15, 17, callback)
+    def read_r14(self):
+        return self.table.read_immediate(15, 17)
     
     def write_r15(self, value):
         self.table.write(16, 17, value)
     
-    def read_r15(self, callback=None):
-        self.table.read(16, 17, callback)
+    def read_r15(self):
+        return self.table.read_immediate(16, 17)
     
     #=================================================================================
     # Valores actuales de registros seguros
@@ -721,62 +743,62 @@ class CPUInfoExcel:
     def write_w1(self, value):
         self.table.write(1, 20, value)
     
-    def read_w1(self, callback=None):
-        self.table.read(1, 20, callback)
+    def read_w1(self):
+        return self.table.read_immediate(1, 20)
     
     def write_w2(self, value):
         self.table.write(2, 20, value)
     
-    def read_w2(self, callback=None):
-        self.table.read(2, 20, callback)
+    def read_w2(self):
+        return self.table.read_immediate(2, 20)
     
     def write_w3(self, value):
         self.table.write(3, 20, value)
     
-    def read_w3(self, callback=None):
-        self.table.read(3, 20, callback)
+    def read_w3(self):
+        return self.table.read_immediate(3, 20)
     
     def write_w4(self, value):
         self.table.write(4, 20, value)
     
-    def read_w4(self, callback=None):
-        self.table.read(4, 20, callback)
+    def read_w4(self):
+        return self.table.read_immediate(4, 20)
     
     def write_w5(self, value):
         self.table.write(5, 20, value)
     
-    def read_w5(self, callback=None):
-        self.table.read(5, 20, callback)
+    def read_w5(self):
+        return self.table.read_immediate(5, 20)
     
     def write_w6(self, value):
         self.table.write(6, 20, value)
     
-    def read_w6(self, callback=None):
-        self.table.read(6, 20, callback)
+    def read_w6(self):
+        return self.table.read_immediate(6, 20)
     
     def write_w7(self, value):
         self.table.write(7, 20, value)
     
-    def read_w7(self, callback=None):
-        self.table.read(7, 20, callback)
+    def read_w7(self):
+        return self.table.read_immediate(7, 20)
     
     def write_w8(self, value):
         self.table.write(8, 20, value)
     
-    def read_w8(self, callback=None):
-        self.table.read(8, 20, callback)
+    def read_w8(self):
+        return self.table.read_immediate(8, 20)
     
     def write_w9(self, value):
         self.table.write(9, 20, value)
     
-    def read_w9(self, callback=None):
-        self.table.read(9, 20, callback)
+    def read_w9(self):
+        return self.table.read_immediate(9, 20)
     
     def write_d0_safe(self, value):
         self.table.write(10, 20, value)
     
-    def read_d0_safe(self, callback=None):
-        self.table.read(10, 20, callback)
+    def read_d0_safe(self):
+        return self.table.read_immediate(10, 20)
     
     #=================================================================================
     # Valores actuales de bloques de la contraseña
@@ -784,50 +806,50 @@ class CPUInfoExcel:
     def write_p1(self, value):
         self.table.write(1, 23, value)
     
-    def read_p1(self, callback=None):
-        self.table.read(1, 23, callback)
+    def read_p1(self):
+        return self.table.read_immediate(1, 23)
     
     def write_p2(self, value):
         self.table.write(2, 23, value)
     
-    def read_p2(self, callback=None):
-        self.table.read(2, 23, callback)
+    def read_p2(self):
+        return self.table.read_immediate(2, 23)
     
     def write_p3(self, value):
         self.table.write(3, 23, value)
     
-    def read_p3(self, callback=None):
-        self.table.read(3, 23, callback)
+    def read_p3(self):
+        return self.table.read_immediate(3, 23)
     
     def write_p4(self, value):
         self.table.write(4, 23, value)
     
-    def read_p4(self, callback=None):
-        self.table.read(4, 23, callback)
+    def read_p4(self):
+        return self.table.read_immediate(4, 23)
     
     def write_p5(self, value):
         self.table.write(5, 23, value)
     
-    def read_p5(self, callback=None):
-        self.table.read(5, 23, callback)
+    def read_p5(self):
+        return self.table.read_immediate(5, 23)
     
     def write_p6(self, value):
         self.table.write(6, 23, value)
     
-    def read_p6(self, callback=None):
-        self.table.read(6, 23, callback)
+    def read_p6(self):
+        return self.table.read_immediate(6, 23)
     
     def write_p7(self, value):
         self.table.write(7, 23, value)
     
-    def read_p7(self, callback=None):
-        self.table.read(7, 23, callback)
+    def read_p7(self):
+        return self.table.read_immediate(7, 23)
     
     def write_p8(self, value):
         self.table.write(8, 23, value)
     
-    def read_p8(self, callback=None):
-        self.table.read(8, 23, callback)
+    def read_p8(self):
+        return self.table.read_immediate(8, 23)
     
     #=================================================================================
     # Valores actuales de registros generales k
@@ -835,554 +857,98 @@ class CPUInfoExcel:
     def write_k0_0(self, value):
         self.table.write(1, 26, value)
     
-    def read_k0_0(self, callback=None):
-        self.table.read(1, 26, callback)
+    def read_k0_0(self):
+        return self.table.read_immediate(1, 26)
     
     def write_k0_1(self, value):
         self.table.write(2, 26, value)
     
-    def read_k0_1(self, callback=None):
-        self.table.read(2, 26, callback)
+    def read_k0_1(self):
+        return self.table.read_immediate(2, 26)
     
     def write_k0_2(self, value):
         self.table.write(3, 26, value)
     
-    def read_k0_2(self, callback=None):
-        self.table.read(3, 26, callback)
+    def read_k0_2(self):
+        return self.table.read_immediate(3, 26)
     
     def write_k0_3(self, value):
         self.table.write(4, 26, value)
     
-    def read_k0_3(self, callback=None):
-        self.table.read(4, 26, callback)
+    def read_k0_3(self):
+        return self.table.read_immediate(4, 26)
     
     def write_k1_0(self, value):
         self.table.write(5, 26, value)
     
-    def read_k1_0(self, callback=None):
-        self.table.read(5, 26, callback)
+    def read_k1_0(self):
+        return self.table.read_immediate(5, 26)
     
     def write_k1_1(self, value):
         self.table.write(6, 26, value)
     
-    def read_k1_1(self, callback=None):
-        self.table.read(6, 26, callback)
+    def read_k1_1(self):
+        return self.table.read_immediate(6, 26)
     
     def write_k1_2(self, value):
         self.table.write(7, 26, value)
     
-    def read_k1_2(self, callback=None):
-        self.table.read(7, 26, callback)
+    def read_k1_2(self):
+        return self.table.read_immediate(7, 26)
     
     def write_k1_3(self, value):
         self.table.write(8, 26, value)
     
-    def read_k1_3(self, callback=None):
-        self.table.read(8, 26, callback)
+    def read_k1_3(self):
+        return self.table.read_immediate(8, 26)
     
     def write_k2_0(self, value):
         self.table.write(9, 26, value)
     
-    def read_k2_0(self, callback=None):
-        self.table.read(9, 26, callback)
+    def read_k2_0(self):
+        return self.table.read_immediate(9, 26)
     
     def write_k2_1(self, value):
         self.table.write(10, 26, value)
     
-    def read_k2_1(self, callback=None):
-        self.table.read(10, 26, callback)
+    def read_k2_1(self):
+        return self.table.read_immediate(10, 26)
     
     def write_k2_2(self, value):
         self.table.write(11, 26, value)
     
-    def read_k2_2(self, callback=None):
-        self.table.read(11, 26, callback)
+    def read_k2_2(self):
+        return self.table.read_immediate(11, 26)
     
     def write_k2_3(self, value):
         self.table.write(12, 26, value)
     
-    def read_k2_3(self, callback=None):
-        self.table.read(12, 26, callback)
+    def read_k2_3(self):
+        return self.table.read_immediate(12, 26)
     
     def write_k3_0(self, value):
         self.table.write(13, 26, value)
     
-    def read_k3_0(self, callback=None):
-        self.table.read(13, 26, callback)
+    def read_k3_0(self):
+        return self.table.read_immediate(13, 26)
     
     def write_k3_1(self, value):
         self.table.write(14, 26, value)
     
-    def read_k3_1(self, callback=None):
-        self.table.read(14, 26, callback)
+    def read_k3_1(self):
+        return self.table.read_immediate(14, 26)
     
     def write_k3_2(self, value):
         self.table.write(15, 26, value)
     
-    def read_k3_2(self, callback=None):
-        self.table.read(15, 26, callback)
+    def read_k3_2(self):
+        return self.table.read_immediate(15, 26)
     
     def write_k3_3(self, value):
         self.table.write(16, 26, value)
     
-    def read_k3_3(self, callback=None):
-        self.table.read(16, 26, callback)
-    
-    #=================================================================================
-    # Valores actuales de la memoria general
-    #=================================================================================
-    def write_g0(self, value):
-        self.table.write(1, 29, value)
-    
-    def read_g0(self, callback=None):
-        self.table.read(1, 29, callback)
-    
-    def write_g1(self, value):
-        self.table.write(2, 29, value)
-    
-    def read_g1(self, callback=None):
-        self.table.read(2, 29, callback)
-    
-    def write_g2(self, value):
-        self.table.write(3, 29, value)
-    
-    def read_g2(self, callback=None):
-        self.table.read(3, 29, callback)
-    
-    def write_g3(self, value):
-        self.table.write(4, 29, value)
-    
-    def read_g3(self, callback=None):
-        self.table.read(4, 29, callback)
-    
-    def write_g4(self, value):
-        self.table.write(5, 29, value)
-    
-    def read_g4(self, callback=None):
-        self.table.read(5, 29, callback)
-    
-    def write_g5(self, value):
-        self.table.write(6, 29, value)
-    
-    def read_g5(self, callback=None):
-        self.table.read(6, 29, callback)
-    
-    def write_g6(self, value):
-        self.table.write(7, 29, value)
-    
-    def read_g6(self, callback=None):
-        self.table.read(7, 29, callback)
-    
-    def write_g7(self, value):
-        self.table.write(8, 29, value)
-    
-    def read_g7(self, callback=None):
-        self.table.read(8, 29, callback)
-    
-    def write_g8(self, value):
-        self.table.write(9, 29, value)
-    
-    def read_g8(self, callback=None):
-        self.table.read(9, 29, callback)
-    
-    def write_g9(self, value):
-        self.table.write(10, 29, value)
-    
-    def read_g9(self, callback=None):
-        self.table.read(10, 29, callback)
-    
-    def write_g10(self, value):
-        self.table.write(11, 29, value)
-    
-    def read_g10(self, callback=None):
-        self.table.read(11, 29, callback)
-    
-    def write_g11(self, value):
-        self.table.write(12, 29, value)
-    
-    def read_g11(self, callback=None):
-        self.table.read(12, 29, callback)
-    
-    def write_g12(self, value):
-        self.table.write(13, 29, value)
-    
-    def read_g12(self, callback=None):
-        self.table.read(13, 29, callback)
-    
-    def write_g13(self, value):
-        self.table.write(14, 29, value)
-    
-    def read_g13(self, callback=None):
-        self.table.read(14, 29, callback)
-    
-    def write_g14(self, value):
-        self.table.write(15, 29, value)
-    
-    def read_g14(self, callback=None):
-        self.table.read(15, 29, callback)
-    
-    def write_g15(self, value):
-        self.table.write(16, 29, value)
-    
-    def read_g15(self, callback=None):
-        self.table.read(16, 29, callback)
-    
-    def write_g16(self, value):
-        self.table.write(17, 29, value)
-    
-    def read_g16(self, callback=None):
-        self.table.read(17, 29, callback)
-    
-    def write_g17(self, value):
-        self.table.write(18, 29, value)
-    
-    def read_g17(self, callback=None):
-        self.table.read(18, 29, callback)
-    
-    def write_g18(self, value):
-        self.table.write(19, 29, value)
-    
-    def read_g18(self, callback=None):
-        self.table.read(19, 29, callback)
-    
-    def write_g19(self, value):
-        self.table.write(20, 29, value)
-    
-    def read_g19(self, callback=None):
-        self.table.read(20, 29, callback)
-    
-    def write_g20(self, value):
-        self.table.write(21, 29, value)
-    
-    def read_g20(self, callback=None):
-        self.table.read(21, 29, callback)
-    
-    def write_g21(self, value):
-        self.table.write(22, 29, value)
-    
-    def read_g21(self, callback=None):
-        self.table.read(22, 29, callback)
-    
-    def write_g22(self, value):
-        self.table.write(23, 29, value)
-    
-    def read_g22(self, callback=None):
-        self.table.read(23, 29, callback)
-    
-    def write_g23(self, value):
-        self.table.write(24, 29, value)
-    
-    def read_g23(self, callback=None):
-        self.table.read(24, 29, callback)
-    
-    def write_g24(self, value):
-        self.table.write(25, 29, value)
-    
-    def read_g24(self, callback=None):
-        self.table.read(25, 29, callback)
-    
-    def write_g25(self, value):
-        self.table.write(26, 29, value)
-    
-    def read_g25(self, callback=None):
-        self.table.read(26, 29, callback)
-    
-    def write_g26(self, value):
-        self.table.write(27, 29, value)
-    
-    def read_g26(self, callback=None):
-        self.table.read(27, 29, callback)
-    
-    def write_g27(self, value):
-        self.table.write(28, 29, value)
-    
-    def read_g27(self, callback=None):
-        self.table.read(28, 29, callback)
-    
-    def write_g28(self, value):
-        self.table.write(29, 29, value)
-    
-    def read_g28(self, callback=None):
-        self.table.read(29, 29, callback)
-    
-    def write_g29(self, value):
-        self.table.write(30, 29, value)
-    
-    def read_g29(self, callback=None):
-        self.table.read(30, 29, callback)
-    
-    def write_g30(self, value):
-        self.table.write(31, 29, value)
-    
-    def read_g30(self, callback=None):
-        self.table.read(31, 29, callback)
-    
-    def write_g31(self, value):
-        self.table.write(32, 29, value)
-    
-    def read_g31(self, callback=None):
-        self.table.read(32, 29, callback)
-    
-    def write_g32(self, value):
-        self.table.write(33, 29, value)
-    
-    def read_g32(self, callback=None):
-        self.table.read(33, 29, callback)
-    
-    def write_g33(self, value):
-        self.table.write(34, 29, value)
-    
-    def read_g33(self, callback=None):
-        self.table.read(34, 29, callback)
-    
-    def write_g34(self, value):
-        self.table.write(35, 29, value)
-    
-    def read_g34(self, callback=None):
-        self.table.read(35, 29, callback)
-    
-    def write_g35(self, value):
-        self.table.write(36, 29, value)
-    
-    def read_g35(self, callback=None):
-        self.table.read(36, 29, callback)
-    
-    def write_g36(self, value):
-        self.table.write(37, 29, value)
-    
-    def read_g36(self, callback=None):
-        self.table.read(37, 29, callback)
-    
-    def write_g37(self, value):
-        self.table.write(38, 29, value)
-    
-    def read_g37(self, callback=None):
-        self.table.read(38, 29, callback)
-    
-    def write_g38(self, value):
-        self.table.write(39, 29, value)
-    
-    def read_g38(self, callback=None):
-        self.table.read(39, 29, callback)
-    
-    def write_g39(self, value):
-        self.table.write(40, 29, value)
-    
-    def read_g39(self, callback=None):
-        self.table.read(40, 29, callback)
-    
-    def write_g40(self, value):
-        self.table.write(41, 29, value)
-    
-    def read_g40(self, callback=None):
-        self.table.read(41, 29, callback)
-    
-    def write_g41(self, value):
-        self.table.write(42, 29, value)
-    
-    def read_g41(self, callback=None):
-        self.table.read(42, 29, callback)
-    
-    def write_g42(self, value):
-        self.table.write(43, 29, value)
-    
-    def read_g42(self, callback=None):
-        self.table.read(43, 29, callback)
-    
-    def write_g43(self, value):
-        self.table.write(44, 29, value)
-    
-    def read_g43(self, callback=None):
-        self.table.read(44, 29, callback)
-    
-    def write_g44(self, value):
-        self.table.write(45, 29, value)
-    
-    def read_g44(self, callback=None):
-        self.table.read(45, 29, callback)
-    
-    def write_g45(self, value):
-        self.table.write(46, 29, value)
-    
-    def read_g45(self, callback=None):
-        self.table.read(46, 29, callback)
-    
-    def write_g46(self, value):
-        self.table.write(47, 29, value)
-    
-    def read_g46(self, callback=None):
-        self.table.read(47, 29, callback)
-    
-    def write_g47(self, value):
-        self.table.write(48, 29, value)
-    
-    def read_g47(self, callback=None):
-        self.table.read(48, 29, callback)
-    
-    def write_g48(self, value):
-        self.table.write(49, 29, value)
-    
-    def read_g48(self, callback=None):
-        self.table.read(49, 29, callback)
-    
-    def write_g49(self, value):
-        self.table.write(50, 29, value)
-    
-    def read_g49(self, callback=None):
-        self.table.read(50, 29, callback)
-    
-    def write_g50(self, value):
-        self.table.write(51, 29, value)
-    
-    def read_g50(self, callback=None):
-        self.table.read(51, 29, callback)
-    
-    def write_g51(self, value):
-        self.table.write(52, 29, value)
-    
-    def read_g51(self, callback=None):
-        self.table.read(52, 29, callback)
-    
-    def write_g52(self, value):
-        self.table.write(53, 29, value)
-    
-    def read_g52(self, callback=None):
-        self.table.read(53, 29, callback)
-    
-    def write_g53(self, value):
-        self.table.write(54, 29, value)
-    
-    def read_g53(self, callback=None):
-        self.table.read(54, 29, callback)
-    
-    def write_g54(self, value):
-        self.table.write(55, 29, value)
-    
-    def read_g54(self, callback=None):
-        self.table.read(55, 29, callback)
-    
-    def write_g55(self, value):
-        self.table.write(56, 29, value)
-    
-    def read_g55(self, callback=None):
-        self.table.read(56, 29, callback)
-    
-    def write_g56(self, value):
-        self.table.write(57, 29, value)
-    
-    def read_g56(self, callback=None):
-        self.table.read(57, 29, callback)
-    
-    def write_g57(self, value):
-        self.table.write(58, 29, value)
-    
-    def read_g57(self, callback=None):
-        self.table.read(58, 29, callback)
-    
-    def write_g58(self, value):
-        self.table.write(59, 29, value)
-    
-    def read_g58(self, callback=None):
-        self.table.read(59, 29, callback)
-    
-    def write_g59(self, value):
-        self.table.write(60, 29, value)
-    
-    def read_g59(self, callback=None):
-        self.table.read(60, 29, callback)
-    
-    def write_g60(self, value):
-        self.table.write(61, 29, value)
-    
-    def read_g60(self, callback=None):
-        self.table.read(61, 29, callback)
-    
-    def write_g61(self, value):
-        self.table.write(62, 29, value)
-    
-    def read_g61(self, callback=None):
-        self.table.read(62, 29, callback)
-    
-    def write_g62(self, value):
-        self.table.write(63, 29, value)
-    
-    def read_g62(self, callback=None):
-        self.table.read(63, 29, callback)
-    
-    def write_g63(self, value):
-        self.table.write(64, 29, value)
-    
-    def read_g63(self, callback=None):
-        self.table.read(64, 29, callback)
-    
-    #=================================================================================
-    # Valores actuales de la memoria dinámica (posición inicial)
-    #=================================================================================
-    def write_d0(self, value):
-        self.table.write(1, 32, value)
-    
-    def read_d0(self, callback=None):
-        self.table.read(1, 32, callback)
-        
-    #=================================================================================
-    # Valor de la instruccion actual por estado
-    #=================================================================================
-    def write_state_fetch(self, value):
-        self.table.write(42, 1, value)
-    
-    def read_state_fetch(self, callback=None):
-        self.table.read(42, 1, callback)
-        
-    def write_state_decode(self, value):
-        self.table.write(42, 4, value)
-    
-    def read_state_decode(self, callback=None):
-        self.table.read(42, 4, callback)
-    
-    def write_state_execute(self, value):
-        self.table.write(42, 7, value)
-    
-    def read_state_execute(self, callback=None):
-        self.table.read(42, 7, callback)
-    
-    def write_state_memory(self, value):
-        self.table.write(42, 10, value)
-    
-    def read_state_memory(self, callback=None):
-        self.table.read(42, 10, callback)
-    
-    def write_state_writeBack(self, value):
-        self.table.write(42, 13, value)
-    
-    def read_state_writeBack(self, callback=None):
-        self.table.read(42, 13, callback)
-    
-    #=================================================================================
-    # Valores del timer e intentos
-    #=================================================================================
-    def write_timer_safe(self, value):
-        self.table.write(42, 16, value)
-    
-    def read_timer_safe(self, callback=None):
-        self.table.read(42, 16, callback)
-    
-    def write_block_statusIn(self, value):
-        self.table.write(43, 16, value)
-    
-    def read_block_statusIn(self, callback=None):
-        self.table.read(43, 16, callback)
-    
-    def write_block_statusOut(self, value):
-        self.table.write(44, 16, value)
-    
-    def read_block_statusOut(self, callback=None):
-        self.table.read(44, 16, callback)
-    
-    def write_attempts_available(self, value):
-        self.table.write(42, 19, value)
-    
-    def read_attempts_available(self, callback=None):
-        self.table.read(42, 19, callback)
+    def read_k3_3(self):
+        return self.table.read_immediate(16, 26)
         
     #=================================================================================
     # Funcion de reset para el inicio del simulador

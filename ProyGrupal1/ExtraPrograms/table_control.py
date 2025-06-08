@@ -128,6 +128,151 @@ class TableControl:
         except Exception as e:
             print(f"✗ Error al guardar: {e}")
     
+    def read_immediate(self, row: int, column: int) -> Tuple[DataType, Any]:
+        """
+        Lee inmediatamente un valor de la celda especificada, sin usar la cola.
+        Retorna una tupla con (DataType, valor_leido).
+        
+        Args:
+            row: Fila de donde leer (1-indexed)
+            column: Columna de donde leer (1-indexed)
+            
+        Returns:
+            Tuple[DataType, Any]: Tupla con el tipo de dato detectado y el valor
+            
+        Raises:
+            Exception: Si hay error al leer la celda
+        """
+        try:
+            # Recargar el archivo para asegurar datos actualizados
+            self._reload_workbook()
+            
+            # Leer valor de la celda
+            cell_value = self.worksheet.cell(row=row, column=column).value
+            
+            # Detectar tipo y procesar valor
+            data_type, processed_value = self._detect_data_type(cell_value)
+            
+            print(f"🔍 Lectura inmediata: {data_type.value} = '{processed_value}' "
+                  f"desde [{row}, {column}]")
+            
+            return data_type, processed_value
+            
+        except Exception as e:
+            print(f"✗ Error en lectura inmediata: {e}")
+            raise
+    
+    def _reload_workbook(self):
+        """Recarga el archivo Excel para obtener datos actualizados"""
+        try:
+            if os.path.exists(self.filename):
+                # Cerrar workbook actual si existe
+                if self.workbook:
+                    self.workbook.close()
+                
+                # Recargar archivo
+                self.workbook = openpyxl.load_workbook(self.filename)
+                self.worksheet = self.workbook.active
+            else:
+                raise FileNotFoundError(f"Archivo no encontrado: {self.filename}")
+        except Exception as e:
+            print(f"⚠ Error al recargar archivo: {e}")
+            raise
+    
+    def _detect_data_type(self, cell_value: Any) -> Tuple[DataType, Any]:
+        """
+        Detecta el tipo de dato basado en el contenido de la celda.
+        
+        Args:
+            cell_value: Valor leído de la celda
+            
+        Returns:
+            Tuple[DataType, Any]: Tupla con el tipo detectado y valor procesado
+        """
+        if cell_value is None:
+            return DataType.STRING, None
+        
+        # Convertir a string para análisis
+        value_str = str(cell_value).strip()
+        
+        # Detectar patrones de formato de datos
+        if value_str.startswith("String: '") and value_str.endswith("'"):
+            # Formato: String: 'texto'
+            actual_value = value_str[9:-1]  # Remover "String: '" y "'"
+            return DataType.STRING, actual_value
+            
+        elif value_str.startswith("Int: 0d"):
+            # Formato: Int: 0d12345
+            try:
+                decimal_part = value_str[7:]  # Remover "Int: 0d"
+                actual_value = int(decimal_part)
+                return DataType.INT, actual_value
+            except ValueError:
+                return DataType.STRING, value_str
+                
+        elif value_str.startswith("Binary: 0b") or value_str.startswith("Binary(large): 0b"):
+            # Formato: Binary: 0b101010 o Binary(large): 0b101010
+            if "Binary(large):" in value_str:
+                binary_part = value_str[value_str.find("0b") + 2:]
+                return DataType.BINARY, f"0b{binary_part}"
+            else:
+                binary_part = value_str[11:]  # Remover "Binary: 0b"
+                try:
+                    # Intentar convertir a decimal si no es muy grande
+                    if len(binary_part) <= 64:
+                        actual_value = int(f"0b{binary_part}", 2)
+                        return DataType.BINARY, actual_value
+                    else:
+                        return DataType.BINARY, f"0b{binary_part}"
+                except ValueError:
+                    return DataType.STRING, value_str
+                    
+        elif value_str.startswith("Hex: 0x") or value_str.startswith("Hex(large): 0x"):
+            # Formato: Hex: 0xDEADBEEF o Hex(large): 0xDEADBEEF
+            if "Hex(large):" in value_str:
+                hex_part = value_str[value_str.find("0x") + 2:]
+                return DataType.HEX, f"0x{hex_part}"
+            else:
+                hex_part = value_str[7:]  # Remover "Hex: 0x"
+                try:
+                    # Intentar convertir a decimal si no es muy grande
+                    if len(hex_part) <= 16:
+                        actual_value = int(f"0x{hex_part}", 16)
+                        return DataType.HEX, actual_value
+                    else:
+                        return DataType.HEX, f"0x{hex_part}"
+                except ValueError:
+                    return DataType.STRING, value_str
+        
+        # Si no coincide con ningún patrón, intentar detectar tipo nativo
+        elif isinstance(cell_value, int) and not isinstance(cell_value, bool):
+            return DataType.INT, cell_value
+        
+        else:
+            # Cualquier otro caso es string
+            return DataType.STRING, value_str
+    
+    def read_immediate_as_string(self, row: int, column: int) -> str:
+        """
+        Lee inmediatamente un valor como string, útil para debug.
+        
+        Args:
+            row: Fila de donde leer (1-indexed)
+            column: Columna de donde leer (1-indexed)
+            
+        Returns:
+            str: Valor de la celda como string
+        """
+        try:
+            self._reload_workbook()
+            cell_value = self.worksheet.cell(row=row, column=column).value
+            result = str(cell_value) if cell_value is not None else "None"
+            print(f"📄 Lectura como string: '{result}' desde [{row}, {column}]")
+            return result
+        except Exception as e:
+            print(f"✗ Error en lectura como string: {e}")
+            raise
+    
     def execute_all(self):
         """Ejecuta todas las acciones pendientes en la cola en orden FIFO"""
         executed = 0
