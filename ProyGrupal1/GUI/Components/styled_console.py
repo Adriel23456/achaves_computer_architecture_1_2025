@@ -28,21 +28,14 @@ class StyledConsole(tk.Frame):
         self.line_numbers_frame.pack(side=tk.LEFT, fill=tk.Y)
         self.line_numbers_frame.pack_propagate(False)
         
-        # Text widget para números de línea (mejor sincronización que Canvas)
-        self.line_numbers_text = tk.Text(
+        # Canvas para números de línea (mejor control de posicionamiento)
+        self.line_numbers = tk.Canvas(
             self.line_numbers_frame,
-            width=4,
-            padx=3,
-            pady=5,
             bg=colors['sidebar_bg'],
-            fg=colors['sidebar_button_fg'],
-            font=self.design_manager.get_font('normal'),  # Usar misma fuente
-            state=tk.DISABLED,
-            wrap=tk.NONE,
-            borderwidth=0,
-            highlightthickness=0
+            highlightthickness=0,
+            width=50
         )
-        self.line_numbers_text.pack(fill=tk.BOTH, expand=True)
+        self.line_numbers.pack(fill=tk.BOTH, expand=True)
         
         # Frame para el texto con scrollbar
         text_frame = tk.Frame(main_frame, bg=colors['bg'])
@@ -116,12 +109,14 @@ class StyledConsole(tk.Frame):
     def _on_text_scroll(self, first, last):
         """Callback cuando el texto se desplaza"""
         self.scrollbar.set(first, last)
-        self.line_numbers_text.yview_moveto(first)
+        # Actualizar números de línea cuando se hace scroll
+        self._update_line_numbers()
     
     def _on_scrollbar_scroll(self, *args):
         """Callback cuando se mueve el scrollbar"""
         self.text_widget.yview(*args)
-        self.line_numbers_text.yview(*args)
+        # Actualizar números después del scroll
+        self.text_widget.after_idle(self._update_line_numbers)
     
     def _on_text_change(self, event=None):
         """Callback cuando el texto cambia"""
@@ -132,22 +127,44 @@ class StyledConsole(tk.Frame):
         self._update_line_numbers()
     
     def _update_line_numbers(self):
-        """Actualiza los números de línea"""
-        self.line_numbers_text.config(state=tk.NORMAL)
-        self.line_numbers_text.delete("1.0", tk.END)
+        """Actualiza los números de línea para líneas lógicas (no visuales)"""
+        colors = self.design_manager.get_colors()
         
-        # Contar líneas actuales
-        line_count = int(self.text_widget.index('end').split('.')[0])
+        # Limpiar canvas
+        self.line_numbers.delete("all")
         
-        # Generar números
-        line_numbers_string = "\n".join(str(i) for i in range(1, line_count))
-        self.line_numbers_text.insert("1.0", line_numbers_string)
+        # Obtener el rango visible
+        first_visible = self.text_widget.index("@0,0")
+        last_visible = self.text_widget.index(f"@0,{self.text_widget.winfo_height()}")
         
-        self.line_numbers_text.config(state=tk.DISABLED)
+        # Encontrar primera línea lógica visible
+        first_line_num = int(first_visible.split('.')[0])
+        last_line_num = int(last_visible.split('.')[0]) + 10  # Buffer adicional
         
-        # Sincronizar scroll
-        first, _ = self.text_widget.yview()
-        self.line_numbers_text.yview_moveto(first)
+        # Dibujar números solo para líneas visibles
+        for line_num in range(max(1, first_line_num - 5), last_line_num):
+            index = f"{line_num}.0"
+            
+            # Verificar si esta línea existe
+            if self.text_widget.compare(index, ">=", "end"):
+                break
+                
+            # Obtener información de display
+            dline = self.text_widget.dlineinfo(index)
+            if dline:
+                y = dline[1] + (dline[3] // 2)  # Centro vertical
+                self.line_numbers.create_text(
+                    45, y+5,
+                    anchor="e",
+                    text=str(line_num),
+                    font=self.design_manager.get_font('normal'),
+                    fill=colors['sidebar_button_fg']
+                )
+        
+        # NO actualizar scrollregion - mantener sincronizado con texto
+        bbox = self.text_widget.bbox("1.0")
+        if bbox:
+            self.line_numbers.config(scrollregion=(0, bbox[1], 50, bbox[1] + self.text_widget.winfo_height()))
     
     def _check_scrollbar_visibility(self):
         """Oculta o muestra el scrollbar según sea necesario"""
@@ -173,11 +190,10 @@ class StyledConsole(tk.Frame):
         
         # Actualizar frame de números
         self.line_numbers_frame.configure(bg=colors['sidebar_bg'])
-        self.line_numbers_text.configure(
-            bg=colors['sidebar_bg'],
-            fg=colors['sidebar_button_fg'],
-            font=self.design_manager.get_font('normal')  # Actualizar fuente
-        )
+        self.line_numbers.configure(bg=colors['sidebar_bg'])
+        
+        # Redibujar números de línea con nuevos colores
+        self._update_line_numbers()
         
         # Actualizar colores del texto
         self.text_widget.configure(

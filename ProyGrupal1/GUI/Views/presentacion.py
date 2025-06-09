@@ -72,18 +72,15 @@ class PresentacionView:
         """Agrega un mensaje de bienvenida a la consola"""
         self.console.printConsoleLn("=== Simulador de CPU - Grupo 5 ===")
         self.console.printConsoleLn("")
-        self.console.printConsoleLn("Bienvenido al simulador de CPU.")
-        self.console.printConsoleLn("Use los botones inferiores para cargar memoria o calcular MD5.")
-        self.console.printConsoleLn("")
     
     def _on_cargar_memoria(self):
         """Maneja el click del botón Cargar Memoria Dinámica"""
-        self.console.printConsoleLn("[INFO] Botón 'Cargar Memoria Dinámica' presionado")
+        self.console.printConsoleLn("[INFO] Botón 'Cargar Memoria Dinámica' presionadoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         print("Click en Cargar Memoria Dinámica")  # Para debugging
     
     def _on_obtener_md5(self):
         """Maneja el click del botón Obtener MD5"""
-        self.console.printConsoleLn("[INFO] Botón 'Obtener MD5' presionado")
+        self.console.printConsoleLn("[INFO] Botón 'Obtener MD5' presionado AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         print("Click en Obtener MD5")  # Para debugging
     
     def printConsoleLn(self, value):
