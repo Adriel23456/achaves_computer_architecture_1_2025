@@ -6,13 +6,17 @@ from pathlib import Path
 current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, str(current_dir))
 
-from table_control import TableControl
+from table_control import DataType, TableControl
 
 class CPUInfoExcel:
     """Clase para manejar la lectura y escritura de señales del CPU en Excel"""
     
     def __init__(self):
         self.table = TableControl()
+        # Diccionario para caché de memoria - más eficiente que métodos individuales
+        self._memory_cache = {}
+        self._memory_base_row = 1  # Fila inicial para bloques de memoria
+        self._memory_base_col = 29  # Columna para bloques de memoria
     
     #=================================================================================
     # Señales del Decode
@@ -953,400 +957,448 @@ class CPUInfoExcel:
     #=================================================================================
     # Valores actuales de la memoria general
     #=================================================================================
-    def write_g0(self, value):
-        self.table.write(1, 29, value)
+    def read_memory_block(self, block_index):
+        """
+        Lee un bloque de memoria de 32 bits.
+        
+        Args:
+            block_index: Índice del bloque (0-63)
+        
+        Returns:
+            int: Valor del bloque o 0x00000000 si fuera de rango
+        """
+        if block_index < 0 or block_index >= 64:
+            return 0x00000000
+        
+        # Calcular posición en la tabla
+        row = self._memory_base_row + block_index
+        
+        try:
+            data_type, value = self.table.read_immediate(row, self._memory_base_col)
+            
+            if value is None:
+                return 0x00000000
+            
+            # Convertir a entero
+            if isinstance(value, str):
+                if value.startswith('0x'):
+                    return int(value, 16)
+                elif value.startswith('0b'):
+                    return int(value, 2)
+            
+            return int(value) & 0xFFFFFFFF
+            
+        except:
+            return 0x00000000
+
+    def write_memory_block(self, block_index, value):
+        """
+        Escribe un bloque de memoria de 32 bits.
+        
+        Args:
+            block_index: Índice del bloque (0-63)
+            value: Valor a escribir
+        """
+        if block_index < 0 or block_index >= 64:
+            return
+        
+        # Calcular posición en la tabla
+        row = self._memory_base_row + block_index
+        
+        # Asegurar que el valor sea de 32 bits
+        value = int(value) & 0xFFFFFFFF
+        
+        # Escribir en formato hexadecimal
+        self.table.write(row, self._memory_base_col, f'0x{value:08X}')
+
+    def read_memory_at_address(self, address):
+        """
+        Lee datos de la memoria en la dirección especificada.
+        
+        Args:
+            address: Dirección de memoria (binario, decimal o hexadecimal)
+        
+        Returns:
+            str: Valor leído en el mismo formato que la dirección
+        """
+        size_bits = 32
+        try:
+            # Detectar formato de entrada
+            addr_str = str(address).strip()
+            if addr_str.startswith('0b'):
+                format_type = 'binary'
+            elif addr_str.startswith('0x'):
+                format_type = 'hex'
+            elif addr_str.startswith('0d'):
+                format_type = 'decimal'
+            else:
+                format_type = 'decimal'
+                addr_str = '0d' + addr_str
+            
+            # Convertir dirección a decimal
+            addr_decimal = self._parse_address(address)
+            
+            if size_bits not in [8, 16, 32]:
+                raise ValueError(f"Tamaño no soportado: {size_bits} bits")
+            
+            size_bytes = size_bits // 8
+            
+            # Verificar límites
+            max_address = 64 * 4  # 256 bytes totales
+            if addr_decimal < 0 or addr_decimal >= max_address:
+                return self._format_output(0, format_type, size_bits)
+            
+            # Si la lectura excede el límite, truncar
+            if addr_decimal + size_bytes > max_address:
+                return self._format_output(0, format_type, size_bits)
+            
+            # Determinar bloques involucrados
+            start_block = addr_decimal // 4
+            start_offset = addr_decimal % 4
+            end_block = (addr_decimal + size_bytes - 1) // 4
+            
+            if start_block == end_block:
+                # Lectura dentro de un solo bloque
+                block_value = self.read_memory_block(start_block)
+                
+                # Extraer los bits necesarios
+                shift = start_offset * 8
+                mask = (1 << size_bits) - 1
+                result = (block_value >> shift) & mask
+                
+            else:
+                # Lectura cruza bloques
+                result = 0
+                bits_read = 0
+                
+                # Primer bloque
+                block_value = self.read_memory_block(start_block)
+                bits_from_first = (4 - start_offset) * 8
+                shift = start_offset * 8
+                mask = (1 << bits_from_first) - 1
+                result = (block_value >> shift) & mask
+                bits_read = bits_from_first
+                
+                # Bloques intermedios y final
+                for block_idx in range(start_block + 1, end_block + 1):
+                    block_value = self.read_memory_block(block_idx)
+                    
+                    if block_idx == end_block:
+                        # Último bloque
+                        remaining_bits = size_bits - bits_read
+                        mask = (1 << remaining_bits) - 1
+                        result |= (block_value & mask) << bits_read
+                    else:
+                        # Bloque completo
+                        result |= block_value << bits_read
+                        bits_read += 32
+            
+            return self._format_output(result, format_type, size_bits)
+                
+        except Exception as e:
+            print(f"✗ Error leyendo memoria: {e}")
+            return self._format_output(0, 'hex', size_bits)
+
+    def write_memory_at_address(self, address, value):
+        """
+        Escribe datos en la memoria en la dirección especificada.
+        
+        Args:
+            address: Dirección de memoria (mismo formato que value)
+            value: Valor a escribir (mismo formato que address)
+        """
+        size_bits = 32
+        try:
+            # Validar que address y value tengan el mismo formato
+            addr_str = str(address).strip()
+            value_str = str(value).strip()
+            
+            # Detectar formatos
+            addr_format = self._detect_format(addr_str)
+            value_format = self._detect_format(value_str)
+            
+            if addr_format != value_format:
+                raise ValueError(f"Address y value deben tener el mismo formato. "
+                            f"Address: {addr_format}, Value: {value_format}")
+            
+            # Parsear valores
+            addr_decimal = self._parse_address(address)
+            value_decimal = self._parse_value(value, size_bits)
+            
+            if size_bits not in [8, 16, 32]:
+                raise ValueError(f"Tamaño no soportado: {size_bits} bits")
+            
+            size_bytes = size_bits // 8
+            max_address = 64 * 4
+            
+            if addr_decimal < 0 or addr_decimal >= max_address:
+                return
+            
+            if addr_decimal + size_bytes > max_address:
+                return
+            
+            start_block = addr_decimal // 4
+            start_offset = addr_decimal % 4
+            end_block = (addr_decimal + size_bytes - 1) // 4
+            
+            if start_block == end_block:
+                # Escritura en un solo bloque
+                current_value = self.read_memory_block(start_block)
+                
+                shift = start_offset * 8
+                mask = (1 << size_bits) - 1
+                clear_mask = ~(mask << shift) & 0xFFFFFFFF
+                
+                new_value = (current_value & clear_mask) | ((value_decimal & mask) << shift)
+                self.write_memory_block(start_block, new_value)
+                
+            else:
+                # Escritura cruza bloques
+                bits_written = 0
+                
+                # Primer bloque
+                current_value = self.read_memory_block(start_block)
+                bits_in_first = (4 - start_offset) * 8
+                shift = start_offset * 8
+                
+                preserve_low = (1 << shift) - 1
+                preserve_high = ~((1 << (shift + bits_in_first)) - 1) & 0xFFFFFFFF
+                value_part = value_decimal & ((1 << bits_in_first) - 1)
+                
+                new_value = (current_value & preserve_low) | (value_part << shift) | (current_value & preserve_high)
+                self.write_memory_block(start_block, new_value)
+                
+                value_decimal >>= bits_in_first
+                bits_written = bits_in_first
+                
+                # Bloques siguientes
+                for block_idx in range(start_block + 1, end_block + 1):
+                    current_value = self.read_memory_block(block_idx)
+                    
+                    if block_idx == end_block:
+                        # Último bloque
+                        remaining_bits = size_bits - bits_written
+                        mask = (1 << remaining_bits) - 1
+                        preserve_mask = ~mask & 0xFFFFFFFF
+                        
+                        new_value = (value_decimal & mask) | (current_value & preserve_mask)
+                        self.write_memory_block(block_idx, new_value)
+                    else:
+                        # Bloque completo
+                        self.write_memory_block(block_idx, value_decimal & 0xFFFFFFFF)
+                        value_decimal >>= 32
+            
+            # Ejecutar escrituras pendientes
+            self.table.execute_writes_only()
+            
+        except Exception as e:
+            print(f"✗ Error escribiendo memoria: {e}")
+
+    def _parse_address(self, address):
+        """Convierte una dirección en cualquier formato a decimal"""
+        addr_str = str(address).strip()
+        
+        if addr_str.startswith('0b'):
+            return int(addr_str, 2)
+        elif addr_str.startswith('0x'):
+            return int(addr_str, 16)
+        elif addr_str.startswith('0d'):
+            return int(addr_str[2:])
+        else:
+            return int(addr_str)
+
+    def _detect_format(self, value_str):
+        """Detecta el formato de un string de valor"""
+        if value_str.startswith('0b'):
+            return 'binary'
+        elif value_str.startswith('0x'):
+            return 'hex'
+        elif value_str.startswith('0d'):
+            return 'decimal'
+        else:
+            # Si no tiene prefijo, asumir decimal
+            return 'decimal'
+
+    def _parse_value(self, value, size_bits):
+        """
+        Parsea un valor y aplica complemento a 2 si es necesario.
+        Solo aplica complemento a 2 para valores decimales.
+        """
+        value_str = str(value).strip()
+        
+        if value_str.startswith('0b'):
+            # Binario - asumir que ya tiene complemento a 2
+            return int(value_str, 2) & ((1 << size_bits) - 1)
+        elif value_str.startswith('0x'):
+            # Hexadecimal - asumir que ya tiene complemento a 2
+            return int(value_str, 16) & ((1 << size_bits) - 1)
+        elif value_str.startswith('0d'):
+            # Decimal con prefijo
+            decimal_value = int(value_str[2:])
+            return self._apply_two_complement(decimal_value, size_bits)
+        else:
+            # Decimal sin prefijo
+            decimal_value = int(value_str)
+            return self._apply_two_complement(decimal_value, size_bits)
+
+    def _apply_two_complement(self, value, size_bits):
+        """
+        Aplica complemento a 2 para valores decimales con signo.
+        Rangos válidos:
+        - 8 bits: -128 a 127
+        - 16 bits: -32,768 a 32,767
+        - 32 bits: -2,147,483,648 a 2,147,483,647
+        """
+        # Calcular límites
+        max_positive = (1 << (size_bits - 1)) - 1
+        min_negative = -(1 << (size_bits - 1))
+        
+        # Validar rango
+        if value < min_negative or value > max_positive:
+            raise ValueError(f"Valor {value} fuera de rango para {size_bits} bits "
+                            f"({min_negative} a {max_positive})")
+        
+        # Si es negativo, aplicar complemento a 2
+        if value < 0:
+            return (1 << size_bits) + value
+        else:
+            return value
+
+    def _format_output(self, value, format_type, size_bits):
+        """
+        Formatea el valor de salida según el tipo especificado.
+        Para decimal, convierte de complemento a 2 a valor con signo.
+        """
+        # Asegurar que el valor esté en el rango correcto
+        value = value & ((1 << size_bits) - 1)
+        
+        if format_type == 'binary':
+            return f"0b{value:0{size_bits}b}"
+        elif format_type == 'hex':
+            hex_digits = (size_bits + 3) // 4  # Redondear hacia arriba
+            return f"0x{value:0{hex_digits}X}"
+        else:  # decimal
+            # Convertir de complemento a 2 a valor con signo
+            if value & (1 << (size_bits - 1)):  # Si el bit más significativo es 1
+                # Es negativo en complemento a 2
+                signed_value = value - (1 << size_bits)
+            else:
+                signed_value = value
+            return f"0d{signed_value}"
+
+    # Métodos de compatibilidad para migración gradual
+    def read_g(self, index):
+        """Compatibilidad con código existente"""
+        return (DataType.HEX, self.read_memory_block(index))
+
+    def write_g(self, index, value):
+        """Compatibilidad con código existente"""
+        self.write_memory_block(index, value)
+        
+    # ===== MEMORIA DINÁMICA =====
+    def read_dynamic_memory(self, address):
+        """
+        Lee un bloque de 32 bits de la memoria dinámica.
+        
+        Args:
+            address: Dirección en formato binario, decimal o hexadecimal
+            
+        Returns:
+            str: Valor leído en el mismo formato que la dirección
+        """
+        try:
+            # Detectar formato de entrada
+            addr_str = str(address).strip()
+            format_type = self._detect_format(addr_str)
+            if format_type == 'decimal' and not addr_str.startswith('0d'):
+                addr_str = '0d' + addr_str
+            
+            # Convertir dirección a decimal
+            addr_decimal = self._parse_address(address)
+            
+            # Construir ruta al archivo
+            current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+            parent_dir = current_dir.parent
+            bin_file = parent_dir / "Assets" / "dynamic_mem.bin"
+            
+            # Si no existe el archivo, retornar 0
+            if not bin_file.exists():
+                return self._format_output(0, format_type, 32)
+            
+            # Leer del archivo
+            with open(bin_file, 'rb') as f:
+                f.seek(addr_decimal)
+                data = f.read(4)
+                
+                if len(data) < 4:
+                    # No hay suficientes datos
+                    return self._format_output(0, format_type, 32)
+                
+                # Convertir bytes a entero (little-endian)
+                value = int.from_bytes(data, byteorder='little', signed=False)
+                
+            return self._format_output(value, format_type, 32)
+            
+        except Exception as e:
+            print(f"✗ Error leyendo memoria dinámica: {e}")
+            return self._format_output(0, format_type if 'format_type' in locals() else 'hex', 32)
+
+    def write_dynamic_memory(self, address, value):
+        """
+        Escribe un bloque de 32 bits en la memoria dinámica.
+        
+        Args:
+            address: Dirección (mismo formato que value)
+            value: Valor a escribir (mismo formato que address)
+        """
+        try:
+            # Validar formatos
+            addr_str = str(address).strip()
+            value_str = str(value).strip()
+            
+            addr_format = self._detect_format(addr_str)
+            value_format = self._detect_format(value_str)
+            
+            if addr_format != value_format:
+                raise ValueError(f"Address y value deben tener el mismo formato. "
+                            f"Address: {addr_format}, Value: {value_format}")
+            
+            # Parsear valores
+            addr_decimal = self._parse_address(address)
+            value_decimal = self._parse_value(value, 32)
+            
+            # Construir ruta
+            current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+            parent_dir = current_dir.parent
+            assets_dir = parent_dir / "Assets"
+            bin_file = assets_dir / "dynamic_mem.bin"
+            
+            # Crear directorio si no existe
+            os.makedirs(assets_dir, exist_ok=True)
+            
+            # Si el archivo no existe o es muy pequeño, expandirlo
+            if not bin_file.exists():
+                with open(bin_file, 'wb') as f:
+                    # Crear archivo con ceros
+                    f.write(b'\x00' * (addr_decimal + 4))
+            else:
+                # Verificar tamaño actual
+                current_size = os.path.getsize(bin_file)
+                if current_size < addr_decimal + 4:
+                    # Expandir archivo
+                    with open(bin_file, 'ab') as f:
+                        f.write(b'\x00' * (addr_decimal + 4 - current_size))
+            
+            # Escribir los 4 bytes
+            with open(bin_file, 'r+b') as f:
+                f.seek(addr_decimal)
+                f.write(value_decimal.to_bytes(4, byteorder='little', signed=False))
+            
+            print(f"✓ Escrito en memoria dinámica [{address}] = {value}")
+            
+        except Exception as e:
+            print(f"✗ Error escribiendo memoria dinámica: {e}")
     
-    def read_g0(self):
-        return self.table.read_immediate(1, 29)
-    
-    def write_g1(self, value):
-        self.table.write(2, 29, value)
-    
-    def read_g1(self):
-        return self.table.read_immediate(2, 29)
-    
-    def write_g2(self, value):
-        self.table.write(3, 29, value)
-    
-    def read_g2(self):
-        return self.table.read_immediate(3, 29)
-    
-    def write_g3(self, value):
-        self.table.write(4, 29, value)
-    
-    def read_g3(self):
-        return self.table.read_immediate(4, 29)
-    
-    def write_g4(self, value):
-        self.table.write(5, 29, value)
-    
-    def read_g4(self):
-        return self.table.read_immediate(5, 29)
-    
-    def write_g5(self, value):
-        self.table.write(6, 29, value)
-    
-    def read_g5(self):
-        return self.table.read_immediate(6, 29)
-    
-    def write_g6(self, value):
-        self.table.write(7, 29, value)
-    
-    def read_g6(self):
-        return self.table.read_immediate(7, 29)
-    
-    def write_g7(self, value):
-        self.table.write(8, 29, value)
-    
-    def read_g7(self):
-        return self.table.read_immediate(8, 29)
-    
-    def write_g8(self, value):
-        self.table.write(9, 29, value)
-    
-    def read_g8(self):
-        return self.table.read_immediate(9, 29)
-    
-    def write_g9(self, value):
-        self.table.write(10, 29, value)
-    
-    def read_g9(self):
-        return self.table.read_immediate(10, 29)
-    
-    def write_g10(self, value):
-        self.table.write(11, 29, value)
-    
-    def read_g10(self):
-        return self.table.read_immediate(11, 29)
-    
-    def write_g11(self, value):
-        self.table.write(12, 29, value)
-    
-    def read_g11(self):
-        return self.table.read_immediate(12, 29)
-    
-    def write_g12(self, value):
-        self.table.write(13, 29, value)
-    
-    def read_g12(self):
-        return self.table.read_immediate(13, 29)
-    
-    def write_g13(self, value):
-        self.table.write(14, 29, value)
-    
-    def read_g13(self):
-        return self.table.read_immediate(14, 29)
-    
-    def write_g14(self, value):
-        self.table.write(15, 29, value)
-    
-    def read_g14(self):
-        return self.table.read_immediate(15, 29)
-    
-    def write_g15(self, value):
-        self.table.write(16, 29, value)
-    
-    def read_g15(self):
-        return self.table.read_immediate(16, 29)
-    
-    def write_g16(self, value):
-        self.table.write(17, 29, value)
-    
-    def read_g16(self):
-        return self.table.read_immediate(17, 29)
-    
-    def write_g17(self, value):
-        self.table.write(18, 29, value)
-    
-    def read_g17(self):
-        return self.table.read_immediate(18, 29)
-    
-    def write_g18(self, value):
-        self.table.write(19, 29, value)
-    
-    def read_g18(self):
-        return self.table.read_immediate(19, 29)
-    
-    def write_g19(self, value):
-        self.table.write(20, 29, value)
-    
-    def read_g19(self):
-        return self.table.read_immediate(20, 29)
-    
-    def write_g20(self, value):
-        self.table.write(21, 29, value)
-    
-    def read_g20(self):
-        return self.table.read_immediate(21, 29)
-    
-    def write_g21(self, value):
-        self.table.write(22, 29, value)
-    
-    def read_g21(self):
-        return self.table.read_immediate(22, 29)
-    
-    def write_g22(self, value):
-        self.table.write(23, 29, value)
-    
-    def read_g22(self):
-        return self.table.read_immediate(23, 29)
-    
-    def write_g23(self, value):
-        self.table.write(24, 29, value)
-    
-    def read_g23(self):
-        return self.table.read_immediate(24, 29)
-    
-    def write_g24(self, value):
-        self.table.write(25, 29, value)
-    
-    def read_g24(self):
-        return self.table.read_immediate(25, 29)
-    
-    def write_g25(self, value):
-        self.table.write(26, 29, value)
-    
-    def read_g25(self):
-        return self.table.read_immediate(26, 29)
-    
-    def write_g26(self, value):
-        self.table.write(27, 29, value)
-    
-    def read_g26(self):
-        return self.table.read_immediate(27, 29)
-    
-    def write_g27(self, value):
-        self.table.write(28, 29, value)
-    
-    def read_g27(self):
-        return self.table.read_immediate(28, 29)
-    
-    def write_g28(self, value):
-        self.table.write(29, 29, value)
-    
-    def read_g28(self):
-        return self.table.read_immediate(29, 29)
-    
-    def write_g29(self, value):
-        self.table.write(30, 29, value)
-    
-    def read_g29(self):
-        return self.table.read_immediate(30, 29)
-    
-    def write_g30(self, value):
-        self.table.write(31, 29, value)
-    
-    def read_g30(self):
-        return self.table.read_immediate(31, 29)
-    
-    def write_g31(self, value):
-        self.table.write(32, 29, value)
-    
-    def read_g31(self):
-        return self.table.read_immediate(32, 29)
-    
-    def write_g32(self, value):
-        self.table.write(33, 29, value)
-    
-    def read_g32(self):
-        return self.table.read_immediate(33, 29)
-    
-    def write_g33(self, value):
-        self.table.write(34, 29, value)
-    
-    def read_g33(self):
-        return self.table.read_immediate(34, 29)
-    
-    def write_g34(self, value):
-        self.table.write(35, 29, value)
-    
-    def read_g34(self):
-        return self.table.read_immediate(35, 29)
-    
-    def write_g35(self, value):
-        self.table.write(36, 29, value)
-    
-    def read_g35(self):
-        return self.table.read_immediate(36, 29)
-    
-    def write_g36(self, value):
-        self.table.write(37, 29, value)
-    
-    def read_g36(self):
-        return self.table.read_immediate(37, 29)
-    
-    def write_g37(self, value):
-        self.table.write(38, 29, value)
-    
-    def read_g37(self):
-        return self.table.read_immediate(38, 29)
-    
-    def write_g38(self, value):
-        self.table.write(39, 29, value)
-    
-    def read_g38(self):
-        return self.table.read_immediate(39, 29)
-    
-    def write_g39(self, value):
-        self.table.write(40, 29, value)
-    
-    def read_g39(self):
-        return self.table.read_immediate(40, 29)
-    
-    def write_g40(self, value):
-        self.table.write(41, 29, value)
-    
-    def read_g40(self):
-        return self.table.read_immediate(41, 29)
-    
-    def write_g41(self, value):
-        self.table.write(42, 29, value)
-    
-    def read_g41(self):
-        return self.table.read_immediate(42, 29)
-    
-    def write_g42(self, value):
-        self.table.write(43, 29, value)
-    
-    def read_g42(self):
-        return self.table.read_immediate(43, 29)
-    
-    def write_g43(self, value):
-        self.table.write(44, 29, value)
-    
-    def read_g43(self):
-        return self.table.read_immediate(44, 29)
-    
-    def write_g44(self, value):
-        self.table.write(45, 29, value)
-    
-    def read_g44(self):
-        return self.table.read_immediate(45, 29)
-    
-    def write_g45(self, value):
-        self.table.write(46, 29, value)
-    
-    def read_g45(self):
-        return self.table.read_immediate(46, 29)
-    
-    def write_g46(self, value):
-        self.table.write(47, 29, value)
-    
-    def read_g46(self):
-        return self.table.read_immediate(47, 29)
-    
-    def write_g47(self, value):
-        self.table.write(48, 29, value)
-    
-    def read_g47(self):
-        return self.table.read_immediate(48, 29)
-    
-    def write_g48(self, value):
-        self.table.write(49, 29, value)
-    
-    def read_g48(self):
-        return self.table.read_immediate(49, 29)
-    
-    def write_g49(self, value):
-        self.table.write(50, 29, value)
-    
-    def read_g49(self):
-        return self.table.read_immediate(50, 29)
-    
-    def write_g50(self, value):
-        self.table.write(51, 29, value)
-    
-    def read_g50(self):
-        return self.table.read_immediate(51, 29)
-    
-    def write_g51(self, value):
-        self.table.write(52, 29, value)
-    
-    def read_g51(self):
-        return self.table.read_immediate(52, 29)
-    
-    def write_g52(self, value):
-        self.table.write(53, 29, value)
-    
-    def read_g52(self):
-        return self.table.read_immediate(53, 29)
-    
-    def write_g53(self, value):
-        self.table.write(54, 29, value)
-    
-    def read_g53(self):
-        return self.table.read_immediate(54, 29)
-    
-    def write_g54(self, value):
-        self.table.write(55, 29, value)
-    
-    def read_g54(self):
-        return self.table.read_immediate(55, 29)
-    
-    def write_g55(self, value):
-        self.table.write(56, 29, value)
-    
-    def read_g55(self):
-        return self.table.read_immediate(56, 29)
-    
-    def write_g56(self, value):
-        self.table.write(57, 29, value)
-    
-    def read_g56(self):
-        return self.table.read_immediate(57, 29)
-    
-    def write_g57(self, value):
-        self.table.write(58, 29, value)
-    
-    def read_g57(self):
-        return self.table.read_immediate(58, 29)
-    
-    def write_g58(self, value):
-        self.table.write(59, 29, value)
-    
-    def read_g58(self):
-        return self.table.read_immediate(59, 29)
-    
-    def write_g59(self, value):
-        self.table.write(60, 29, value)
-    
-    def read_g59(self):
-        return self.table.read_immediate(60, 29)
-    
-    def write_g60(self, value):
-        self.table.write(61, 29, value)
-    
-    def read_g60(self):
-        return self.table.read_immediate(61, 29)
-    
-    def write_g61(self, value):
-        self.table.write(62, 29, value)
-    
-    def read_g61(self):
-        return self.table.read_immediate(62, 29)
-    
-    def write_g62(self, value):
-        self.table.write(63, 29, value)
-    
-    def read_g62(self):
-        return self.table.read_immediate(63, 29)
-    
-    def write_g63(self, value):
-        self.table.write(64, 29, value)
-    
-    def read_g63(self):
-        return self.table.read_immediate(64, 29)
-    
-    #=================================================================================
-    # Valores actuales de la memoria dinámica (posición inicial)
-    #=================================================================================
-    def write_d0(self, value):
-        self.table.write(1, 32, value)
-    
-    def read_d0(self):
-        return self.table.read_immediate(1, 32)
-    
-    #Las demas direcciones de memoria dinamica se escriben moviendonos por las siguientes filas
         
     #=================================================================================
     # Valor de la instruccion actual por estado
@@ -1745,12 +1797,6 @@ class CPUInfoExcel:
             for row in range(1, 65):
                 self.table.write(row, 28, f"G{row-1}")
                 self.table.write(row, 29, "0x00000000")
-            
-            # Establecer la posición inicial de la memoria dinámica
-            # Write string
-            self.table.write(1, 31, "D_Mem0")
-            # Write numérico
-            self.write_d0("0x00000000")
             
             #Reiniciar valores de seguridad
             self.write_timer_safe(0)

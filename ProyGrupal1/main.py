@@ -60,6 +60,6 @@ def main():
     # Crear y ejecutar la aplicación
     app = Application(BASE_DIR, config_path, cpu_excel)
     app.run()
-
+    
 if __name__ == "__main__":
     main()

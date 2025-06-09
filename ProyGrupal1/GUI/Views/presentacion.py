@@ -1,6 +1,7 @@
 """
 presentacion.py - Vista de presentación de la aplicación
 """
+from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, filedialog
 import hashlib
@@ -85,23 +86,19 @@ class PresentacionView:
         self.console.printConsoleLn("=== Simulador de CPU - Grupo 5 ===")
         self.console.printConsoleLn("")
     
-    #SE TIENE QUE ARREGLAR, LO CORRECTO ES GENERAR UN ARCHIVO "dinamic_mem.bin" en Assets que contenga todo en bits
     def _on_cargar_memoria(self):
         """Maneja el click del botón Cargar Memoria Dinámica"""
         # 1) Diálogo para elegir el archivo
-        # Construir la ruta de la carpeta
         out_path = os.path.join(self.base_dir)
-        # Obtener la ventana principal para el diálogo
         root = self.parent.winfo_toplevel()
-        # Guardar el estado actual de la ventana
         was_grab = root.grab_current()
-        # Abrir el diálogo de selección de archivos
+        
         archivo = filedialog.askopenfilename(
             parent=root,
             title="Seleccionar archivo como memoria dinámica",
             initialdir=out_path
         )
-        # Restaurar el estado de la ventana
+        
         if was_grab:
             was_grab.grab_set()
             
@@ -114,9 +111,7 @@ class PresentacionView:
             return
         
         try:
-            # ================================================================
-            # PASO 1  ▸ Leer todos los bytes del archivo
-            # ================================================================
+            # Leer todos los bytes del archivo
             with open(archivo, "rb") as f:
                 data = f.read()
 
@@ -124,43 +119,30 @@ class PresentacionView:
             if byte_len == 0:
                 raise ValueError("El archivo está vacío")
 
-            # ================================================================
-            # PASO 2  ▸ Alinear a múltiplo de 8 bytes (64 bits)
-            # ================================================================
+            # Alinear a múltiplo de 8 bytes (64 bits)
             resto = byte_len % 8
             if resto != 0:
                 pad = 8 - resto
                 data += b"\x00" * pad
                 byte_len += pad
 
-            # ================================================================
-            # PASO 3  ▸ Generar la lista de bloques de 32 bits
-            #          (2 palabras de 32 bits por cada 64 bits)
-            # ================================================================
-            bloques_32 = []
-            for i in range(0, byte_len, 4):
-                word_bytes = data[i : i + 4]           # siempre 4 bytes
-                word_int   = int.from_bytes(word_bytes, byteorder="big")
-                bloques_32.append(f"0x{word_int:08X}") # => 0xDEADBEEF
-
-            # ================================================================
-            # PASO 4  ▸ Escribirlos en el Excel con CPUInfoExcel
-            #          Columna 31: etiqueta   «D_MemN»
-            #          Columna 32: valor hex  «0xXXXXXXXX»
-            # ================================================================
-            tabla = self.cpu_excel.table          # acceso directo a TableControl
-            for fila, valor in enumerate(bloques_32, start=1):
-                etiqueta = f"D_Mem{fila-1}"
-                tabla.write(fila, 31, etiqueta)   # nombre de la celda
-                tabla.write(fila, 32, valor)      # valor de 32 bits
-
-            # Commit masivo al libro (idéntico a reset())
-            tabla.execute_all()
+            # Construir ruta al archivo dynamic_mem.bin
+            current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+            parent_dir = current_dir.parent.parent
+            assets_dir = parent_dir / "Assets"
+            bin_file = assets_dir / "dynamic_mem.bin"
+            
+            # Crear directorio Assets si no existe
+            os.makedirs(assets_dir, exist_ok=True)
+            
+            # Escribir los datos al archivo binario
+            with open(bin_file, 'wb') as f:
+                f.write(data)
 
             # Mensajes en consola
             self.console.printConsoleLn(f"[INFO] Memoria dinámica cargada: {os.path.basename(archivo)}")
-            self.console.printConsoleLn(f"[INFO] Bytes leídos: {byte_len}")
-            self.console.printConsoleLn(f"[INFO] Palabras escritas (32 bits): {len(bloques_32)}")
+            self.console.printConsoleLn(f"[INFO] Bytes escritos: {byte_len}")
+            self.console.printConsoleLn(f"[INFO] Bloques de 64 bits: {byte_len // 8}")
 
         except Exception as e:
             self.console.printConsoleLn(f"[ERROR] No se pudo cargar la memoria dinámica: {e}")
@@ -247,80 +229,70 @@ class PresentacionView:
         return int(v) & 0xFFFFFFFF
     
     def _on_encriptar_tea(self):
-        """Encripta todos los bloques de memoria dinámica con TEA y genera un .enc."""
+        """
+        Lee cada bloque de 64 bits (8 bytes) del archivo Assets/dynamic_mem.bin,
+        aplica 32 rondas de TEA y crea el archivo parent_dir/out/dynamic_mem.enc.
+        """
         try:
-            tbl = self.cpu_excel.table
+            # ─── 1) Delta y clave siguen viniendo del Excel de control ───────────
+            delta_val = self.cpu_excel.read_d0_safe()[1]
+            delta = self._to_uint32(delta_val)
 
-            # ─── Delta ───────────────────────────────────────────────
-            delta_val = self.cpu_excel.read_d0_safe()[1]   # segundo elemento de la tupla
-            delta     = self._to_uint32(delta_val)
-
-            # ─── Clave k[0..3] ───────────────────────────────────────
             k = []
-            for fn in (self.cpu_excel.read_k0_0,
-                    self.cpu_excel.read_k0_1,
-                    self.cpu_excel.read_k0_2,
-                    self.cpu_excel.read_k0_3):
+            for fn in (
+                self.cpu_excel.read_k0_0,
+                self.cpu_excel.read_k0_1,
+                self.cpu_excel.read_k0_2,
+                self.cpu_excel.read_k0_3,
+            ):
                 k.append(self._to_uint32(fn()[1]))
 
-            # ─── Recorremos la memoria dinámica ──────────────────────
-            fila = 1
-            words_after = []
+            # ─── 2) Localizar y leer dynamic_mem.bin ────────────────────────────
+            current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+            parent_dir = current_dir.parent.parent
+            bin_file   = parent_dir / "Assets" / "dynamic_mem.bin"
 
-            while True:
-                t0 = tbl.read_immediate(fila,     32)
-                t1 = tbl.read_immediate(fila + 1, 32)
+            if not bin_file.exists():
+                self.console.printConsoleLn(
+                    "[ERROR] No se encontró dynamic_mem.bin. "
+                    "Primero cargue la memoria dinámica."
+                )
+                return
 
-                if not t0 or not t0[1]:
-                    break            # fin de datos
+            data = bin_file.read_bytes()
+            byte_len = len(data)
 
-                if not t1 or not t1[1]:
-                    self.console.printConsoleLn("[WARN] Número impar de palabras; última sin encriptar.")
-                    break
+            if byte_len % 8 != 0:
+                self.console.printConsoleLn(
+                    "[WARN] La memoria no está alineada a 64 bits. "
+                    "Se ignorarán los bytes sobrantes."
+                )
+                data = data[: byte_len // 8 * 8]
 
-                v0 = self._to_uint32(t0[1])
-                v1 = self._to_uint32(t1[1])
+            # ─── 3) Encriptar bloque a bloque ──────────────────────────────────
+            encrypted_words: list[int] = []
+            for i in range(0, len(data), 8):
+                v0 = int.from_bytes(data[i : i + 4], "big")
+                v1 = int.from_bytes(data[i + 4 : i + 8], "big")
 
-                v0, v1 = self.tea_encripcion(v0, v1, delta, k)
+                v0_enc, v1_enc = self.tea_encripcion(v0, v1, delta, k)
+                encrypted_words.extend([v0_enc, v1_enc])
 
-                tbl.write(fila,     32, f"0x{v0:08X}")
-                tbl.write(fila + 1, 32, f"0x{v1:08X}")
-
-                words_after.extend([v0, v1])
-                fila += 2
-
-            if not words_after:
+            if not encrypted_words:
                 self.console.printConsoleLn("[WARN] No se encontraron datos para encriptar.")
                 return
 
-            tbl.execute_all()
+            # ─── 4) Serializar salida y guardar ────────────────────────────────
+            out_bytes = bytearray()
+            for w in encrypted_words:
+                out_bytes.extend(w.to_bytes(4, "big"))
 
-            # ─── Generar .enc ─────────────────────────────────────────
-            out_bytes = bytearray(w.to_bytes(4, "big") for w in words_after)
+            out_dir  = parent_dir / "out"
+            out_dir.mkdir(exist_ok=True)
+            out_path = out_dir / "dynamic_mem.enc"
+            out_path.write_bytes(out_bytes)
 
-            out_path = os.path.join(self.base_dir, "out")
-            os.makedirs(out_path, exist_ok=True)
-
-            root = self.parent.winfo_toplevel()
-            was_grab = root.grab_current()
-
-            file_name = filedialog.asksaveasfilename(
-                parent=root,
-                title="Guardar archivo encriptado",
-                initialdir=out_path,
-                defaultextension=".enc",
-                filetypes=[("Encrypted file", "*.enc"), ("All files", "*.*")]
-            )
-
-            if was_grab:
-                was_grab.grab_set()
-
-            if file_name:
-                with open(file_name, "wb") as f:
-                    f.write(out_bytes)
-                self.console.printConsoleLn(f"[INFO] Archivo encriptado guardado en: {file_name}")
-            else:
-                self.console.printConsoleLn("[INFO] Guardado cancelado.")
+            self.console.printConsoleLn(f"[INFO] Archivo encriptado generado en: {out_path}")
 
         except Exception as e:
             self.console.printConsoleLn(f"[ERROR] Encriptación fallida: {e}")
