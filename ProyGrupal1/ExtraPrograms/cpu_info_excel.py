@@ -1699,17 +1699,8 @@ class CPUInfoExcel:
         self.table.write(6, 22, "P6")
         self.table.write(7, 22, "P7")
         self.table.write(8, 22, "P8")
-        # Write numérico (valores iniciales) usando funciones
-        self.write_p1("0x00000001")
-        self.write_p2("0x00000010")
-        self.write_p3("0x00000011")
-        self.write_p4("0x00000100")
-        self.write_p5("0x00000101")
-        self.write_p6("0x00000110")
-        self.write_p7("0x00000111")
-        self.write_p8("0x00001000")
         
-        # Valores actuales de registros generales k
+        # Valores actuales de memoria de llaves criptograficas k
         # Write string (nombres de registros k)
         self.table.write(1, 25, "k0.0")
         self.table.write(2, 25, "k0.1")
@@ -1727,23 +1718,6 @@ class CPUInfoExcel:
         self.table.write(14, 25, "k3.1")
         self.table.write(15, 25, "k3.2")
         self.table.write(16, 25, "k3.3")
-        # Write numérico (valores iniciales) usando funciones
-        self.write_k0_0("0x00000000")
-        self.write_k0_1("0x00000000")
-        self.write_k0_2("0x00000000")
-        self.write_k0_3("0x00000000")
-        self.write_k1_0("0x00000000")
-        self.write_k1_1("0x00000000")
-        self.write_k1_2("0x00000000")
-        self.write_k1_3("0x00000000")
-        self.write_k2_0("0x00000000")
-        self.write_k2_1("0x00000000")
-        self.write_k2_2("0x00000000")
-        self.write_k2_3("0x00000000")
-        self.write_k3_0("0x00000000")
-        self.write_k3_1("0x00000000")
-        self.write_k3_2("0x00000000")
-        self.write_k3_3("0x00000000")
         
         # Estado regular de la instrucción actual por estado
         #Nombres de los estados
@@ -1783,5 +1757,33 @@ class CPUInfoExcel:
             self.write_block_statusIn("0b00000000")
             self.write_block_statusOut("0b00000000")
             self.write_attempts_available("0b0000")
+            
+            # Write numérico de llaves criptograficas (valores iniciales) usando funciones
+            self.write_k0_0("0x00000000")
+            self.write_k0_1("0x00000000")
+            self.write_k0_2("0x00000000")
+            self.write_k0_3("0x00000000")
+            self.write_k1_0("0x00000000")
+            self.write_k1_1("0x00000000")
+            self.write_k1_2("0x00000000")
+            self.write_k1_3("0x00000000")
+            self.write_k2_0("0x00000000")
+            self.write_k2_1("0x00000000")
+            self.write_k2_2("0x00000000")
+            self.write_k2_3("0x00000000")
+            self.write_k3_0("0x00000000")
+            self.write_k3_1("0x00000000")
+            self.write_k3_2("0x00000000")
+            self.write_k3_3("0x00000000")
+            
+            # Write numérico (valores iniciales) usando funciones de la contraseña
+            self.write_p1("0x00000001")
+            self.write_p2("0x00000010")
+            self.write_p3("0x00000011")
+            self.write_p4("0x00000100")
+            self.write_p5("0x00000101")
+            self.write_p6("0x00000110")
+            self.write_p7("0x00000111")
+            self.write_p8("0x00001000")
 
         self.table.execute_all()
