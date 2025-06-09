@@ -132,15 +132,16 @@ class ViewController:
     
     def refresh_current_view(self):
         """Actualiza la vista actual (útil cuando cambian las fuentes)"""
-        if self.current_view_name:
-            # Limpiar cache de la vista actual
-            if self.current_view_name in self.loaded_views:
-                self.current_view.hide()
-                self.current_view.frame.destroy()
-                del self.loaded_views[self.current_view_name]
-            
-            # Recargar la vista
-            self._load_view(self.current_view_name)
+        # Guardar el nombre de la vista actual
+        current_name = self.current_view_name
+        
+        # Limpiar TODO el caché para forzar la recreación de todas las vistas
+        self.clear_cache()
+        
+        # Recargar la vista actual
+        if current_name:
+            self.current_view_name = None  # Forzar recarga
+            self.show_view(current_name)
     
     def get_current_view(self):
         """Retorna la vista actual"""
@@ -153,4 +154,4 @@ class ViewController:
                 view.frame.destroy()
         self.loaded_views.clear()
         self.current_view = None
-        self.current_view_name = None
+        # No limpiar current_view_name aquí para poder recargar
