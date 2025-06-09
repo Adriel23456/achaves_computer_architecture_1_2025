@@ -23,12 +23,13 @@ class ConfiguracionView:
         "2560x1440",
     ]
 
-    def __init__(self, parent, base_dir, config, design_manager, on_config_change):
+    def __init__(self, parent, base_dir, config, design_manager, on_config_change, cpu_excel):
         self.parent = parent
         self.base_dir = base_dir
         self.config = config
         self.design_manager = design_manager
         self.on_config_change = on_config_change
+        self.cpu_excel = cpu_excel
 
         # --- variables de control ---
         self.font_size_var = tk.IntVar(value=config["theme"]["font_size"])

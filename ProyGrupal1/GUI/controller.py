@@ -6,12 +6,13 @@ import tkinter as tk
 from tkinter import ttk
 
 class ViewController:
-    def __init__(self, parent_frame, base_dir, config, design_manager, on_config_change):
+    def __init__(self, parent_frame, base_dir, config, design_manager, on_config_change, cpu_excel):
         self.parent_frame = parent_frame
         self.base_dir = base_dir
         self.config = config
         self.design_manager = design_manager
         self.on_config_change = on_config_change
+        self.cpu_excel = cpu_excel
         
         # Cache de vistas cargadas
         self.loaded_views = {}
@@ -95,7 +96,8 @@ class ViewController:
                 self.base_dir, 
                 self.config,
                 self.design_manager,
-                self.on_config_change
+                self.on_config_change,
+                self.cpu_excel
             )
             
             # Agregar métodos de control a la vista

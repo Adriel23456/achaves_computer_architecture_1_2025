@@ -1345,6 +1345,8 @@ class CPUInfoExcel:
     
     def read_d0(self):
         return self.table.read_immediate(1, 32)
+    
+    #Las demas direcciones de memoria dinamica se escriben moviendonos por las siguientes filas
         
     #=================================================================================
     # Valor de la instruccion actual por estado

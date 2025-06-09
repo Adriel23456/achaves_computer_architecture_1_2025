@@ -50,7 +50,7 @@ def ensure_config_exists():
 
 def main():
     # Inicializar la clase de información de CPU
-    #cpu_excel = CPUInfoExcel()
+    cpu_excel = CPUInfoExcel()
     #cpu_excel.reset(False) #Resetea la información de CPU al inicio
     
     """Función principal de la aplicación"""
@@ -58,7 +58,7 @@ def main():
     config_path = ensure_config_exists()
     
     # Crear y ejecutar la aplicación
-    app = Application(BASE_DIR, config_path)
+    app = Application(BASE_DIR, config_path, cpu_excel)
     app.run()
 
 if __name__ == "__main__":
