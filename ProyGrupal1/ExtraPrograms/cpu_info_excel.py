@@ -852,7 +852,7 @@ class CPUInfoExcel:
         return self.table.read_immediate(8, 23)
     
     #=================================================================================
-    # Valores actuales de registros generales k
+    # Valores actuales de la bodega de llaves criptograficas
     #=================================================================================
     def write_k0_0(self, value):
         self.table.write(1, 26, value)
@@ -949,6 +949,462 @@ class CPUInfoExcel:
     
     def read_k3_3(self):
         return self.table.read_immediate(16, 26)
+    
+    #=================================================================================
+    # Valores actuales de la memoria general
+    #=================================================================================
+    def write_g0(self, value):
+        self.table.write(1, 29, value)
+    
+    def read_g0(self):
+        return self.table.read_immediate(1, 29)
+    
+    def write_g1(self, value):
+        self.table.write(2, 29, value)
+    
+    def read_g1(self):
+        return self.table.read_immediate(2, 29)
+    
+    def write_g2(self, value):
+        self.table.write(3, 29, value)
+    
+    def read_g2(self):
+        return self.table.read_immediate(3, 29)
+    
+    def write_g3(self, value):
+        self.table.write(4, 29, value)
+    
+    def read_g3(self):
+        return self.table.read_immediate(4, 29)
+    
+    def write_g4(self, value):
+        self.table.write(5, 29, value)
+    
+    def read_g4(self):
+        return self.table.read_immediate(5, 29)
+    
+    def write_g5(self, value):
+        self.table.write(6, 29, value)
+    
+    def read_g5(self):
+        return self.table.read_immediate(6, 29)
+    
+    def write_g6(self, value):
+        self.table.write(7, 29, value)
+    
+    def read_g6(self):
+        return self.table.read_immediate(7, 29)
+    
+    def write_g7(self, value):
+        self.table.write(8, 29, value)
+    
+    def read_g7(self):
+        return self.table.read_immediate(8, 29)
+    
+    def write_g8(self, value):
+        self.table.write(9, 29, value)
+    
+    def read_g8(self):
+        return self.table.read_immediate(9, 29)
+    
+    def write_g9(self, value):
+        self.table.write(10, 29, value)
+    
+    def read_g9(self):
+        return self.table.read_immediate(10, 29)
+    
+    def write_g10(self, value):
+        self.table.write(11, 29, value)
+    
+    def read_g10(self):
+        return self.table.read_immediate(11, 29)
+    
+    def write_g11(self, value):
+        self.table.write(12, 29, value)
+    
+    def read_g11(self):
+        return self.table.read_immediate(12, 29)
+    
+    def write_g12(self, value):
+        self.table.write(13, 29, value)
+    
+    def read_g12(self):
+        return self.table.read_immediate(13, 29)
+    
+    def write_g13(self, value):
+        self.table.write(14, 29, value)
+    
+    def read_g13(self):
+        return self.table.read_immediate(14, 29)
+    
+    def write_g14(self, value):
+        self.table.write(15, 29, value)
+    
+    def read_g14(self):
+        return self.table.read_immediate(15, 29)
+    
+    def write_g15(self, value):
+        self.table.write(16, 29, value)
+    
+    def read_g15(self):
+        return self.table.read_immediate(16, 29)
+    
+    def write_g16(self, value):
+        self.table.write(17, 29, value)
+    
+    def read_g16(self):
+        return self.table.read_immediate(17, 29)
+    
+    def write_g17(self, value):
+        self.table.write(18, 29, value)
+    
+    def read_g17(self):
+        return self.table.read_immediate(18, 29)
+    
+    def write_g18(self, value):
+        self.table.write(19, 29, value)
+    
+    def read_g18(self):
+        return self.table.read_immediate(19, 29)
+    
+    def write_g19(self, value):
+        self.table.write(20, 29, value)
+    
+    def read_g19(self):
+        return self.table.read_immediate(20, 29)
+    
+    def write_g20(self, value):
+        self.table.write(21, 29, value)
+    
+    def read_g20(self):
+        return self.table.read_immediate(21, 29)
+    
+    def write_g21(self, value):
+        self.table.write(22, 29, value)
+    
+    def read_g21(self):
+        return self.table.read_immediate(22, 29)
+    
+    def write_g22(self, value):
+        self.table.write(23, 29, value)
+    
+    def read_g22(self):
+        return self.table.read_immediate(23, 29)
+    
+    def write_g23(self, value):
+        self.table.write(24, 29, value)
+    
+    def read_g23(self):
+        return self.table.read_immediate(24, 29)
+    
+    def write_g24(self, value):
+        self.table.write(25, 29, value)
+    
+    def read_g24(self):
+        return self.table.read_immediate(25, 29)
+    
+    def write_g25(self, value):
+        self.table.write(26, 29, value)
+    
+    def read_g25(self):
+        return self.table.read_immediate(26, 29)
+    
+    def write_g26(self, value):
+        self.table.write(27, 29, value)
+    
+    def read_g26(self):
+        return self.table.read_immediate(27, 29)
+    
+    def write_g27(self, value):
+        self.table.write(28, 29, value)
+    
+    def read_g27(self):
+        return self.table.read_immediate(28, 29)
+    
+    def write_g28(self, value):
+        self.table.write(29, 29, value)
+    
+    def read_g28(self):
+        return self.table.read_immediate(29, 29)
+    
+    def write_g29(self, value):
+        self.table.write(30, 29, value)
+    
+    def read_g29(self):
+        return self.table.read_immediate(30, 29)
+    
+    def write_g30(self, value):
+        self.table.write(31, 29, value)
+    
+    def read_g30(self):
+        return self.table.read_immediate(31, 29)
+    
+    def write_g31(self, value):
+        self.table.write(32, 29, value)
+    
+    def read_g31(self):
+        return self.table.read_immediate(32, 29)
+    
+    def write_g32(self, value):
+        self.table.write(33, 29, value)
+    
+    def read_g32(self):
+        return self.table.read_immediate(33, 29)
+    
+    def write_g33(self, value):
+        self.table.write(34, 29, value)
+    
+    def read_g33(self):
+        return self.table.read_immediate(34, 29)
+    
+    def write_g34(self, value):
+        self.table.write(35, 29, value)
+    
+    def read_g34(self):
+        return self.table.read_immediate(35, 29)
+    
+    def write_g35(self, value):
+        self.table.write(36, 29, value)
+    
+    def read_g35(self):
+        return self.table.read_immediate(36, 29)
+    
+    def write_g36(self, value):
+        self.table.write(37, 29, value)
+    
+    def read_g36(self):
+        return self.table.read_immediate(37, 29)
+    
+    def write_g37(self, value):
+        self.table.write(38, 29, value)
+    
+    def read_g37(self):
+        return self.table.read_immediate(38, 29)
+    
+    def write_g38(self, value):
+        self.table.write(39, 29, value)
+    
+    def read_g38(self):
+        return self.table.read_immediate(39, 29)
+    
+    def write_g39(self, value):
+        self.table.write(40, 29, value)
+    
+    def read_g39(self):
+        return self.table.read_immediate(40, 29)
+    
+    def write_g40(self, value):
+        self.table.write(41, 29, value)
+    
+    def read_g40(self):
+        return self.table.read_immediate(41, 29)
+    
+    def write_g41(self, value):
+        self.table.write(42, 29, value)
+    
+    def read_g41(self):
+        return self.table.read_immediate(42, 29)
+    
+    def write_g42(self, value):
+        self.table.write(43, 29, value)
+    
+    def read_g42(self):
+        return self.table.read_immediate(43, 29)
+    
+    def write_g43(self, value):
+        self.table.write(44, 29, value)
+    
+    def read_g43(self):
+        return self.table.read_immediate(44, 29)
+    
+    def write_g44(self, value):
+        self.table.write(45, 29, value)
+    
+    def read_g44(self):
+        return self.table.read_immediate(45, 29)
+    
+    def write_g45(self, value):
+        self.table.write(46, 29, value)
+    
+    def read_g45(self):
+        return self.table.read_immediate(46, 29)
+    
+    def write_g46(self, value):
+        self.table.write(47, 29, value)
+    
+    def read_g46(self):
+        return self.table.read_immediate(47, 29)
+    
+    def write_g47(self, value):
+        self.table.write(48, 29, value)
+    
+    def read_g47(self):
+        return self.table.read_immediate(48, 29)
+    
+    def write_g48(self, value):
+        self.table.write(49, 29, value)
+    
+    def read_g48(self):
+        return self.table.read_immediate(49, 29)
+    
+    def write_g49(self, value):
+        self.table.write(50, 29, value)
+    
+    def read_g49(self):
+        return self.table.read_immediate(50, 29)
+    
+    def write_g50(self, value):
+        self.table.write(51, 29, value)
+    
+    def read_g50(self):
+        return self.table.read_immediate(51, 29)
+    
+    def write_g51(self, value):
+        self.table.write(52, 29, value)
+    
+    def read_g51(self):
+        return self.table.read_immediate(52, 29)
+    
+    def write_g52(self, value):
+        self.table.write(53, 29, value)
+    
+    def read_g52(self):
+        return self.table.read_immediate(53, 29)
+    
+    def write_g53(self, value):
+        self.table.write(54, 29, value)
+    
+    def read_g53(self):
+        return self.table.read_immediate(54, 29)
+    
+    def write_g54(self, value):
+        self.table.write(55, 29, value)
+    
+    def read_g54(self):
+        return self.table.read_immediate(55, 29)
+    
+    def write_g55(self, value):
+        self.table.write(56, 29, value)
+    
+    def read_g55(self):
+        return self.table.read_immediate(56, 29)
+    
+    def write_g56(self, value):
+        self.table.write(57, 29, value)
+    
+    def read_g56(self):
+        return self.table.read_immediate(57, 29)
+    
+    def write_g57(self, value):
+        self.table.write(58, 29, value)
+    
+    def read_g57(self):
+        return self.table.read_immediate(58, 29)
+    
+    def write_g58(self, value):
+        self.table.write(59, 29, value)
+    
+    def read_g58(self):
+        return self.table.read_immediate(59, 29)
+    
+    def write_g59(self, value):
+        self.table.write(60, 29, value)
+    
+    def read_g59(self):
+        return self.table.read_immediate(60, 29)
+    
+    def write_g60(self, value):
+        self.table.write(61, 29, value)
+    
+    def read_g60(self):
+        return self.table.read_immediate(61, 29)
+    
+    def write_g61(self, value):
+        self.table.write(62, 29, value)
+    
+    def read_g61(self):
+        return self.table.read_immediate(62, 29)
+    
+    def write_g62(self, value):
+        self.table.write(63, 29, value)
+    
+    def read_g62(self):
+        return self.table.read_immediate(63, 29)
+    
+    def write_g63(self, value):
+        self.table.write(64, 29, value)
+    
+    def read_g63(self):
+        return self.table.read_immediate(64, 29)
+    
+    #=================================================================================
+    # Valores actuales de la memoria dinámica (posición inicial)
+    #=================================================================================
+    def write_d0(self, value):
+        self.table.write(1, 32, value)
+    
+    def read_d0(self):
+        return self.table.read_immediate(1, 32)
+        
+    #=================================================================================
+    # Valor de la instruccion actual por estado
+    #=================================================================================
+    def write_state_fetch(self, value):
+        self.table.write(42, 1, value)
+    
+    def read_state_fetch(self):
+        return self.table.read_immediate(42, 1)
+        
+    def write_state_decode(self, value):
+        self.table.write(42, 4, value)
+    
+    def read_state_decode(self):
+        return self.table.read_immediate(42, 4)
+    
+    def write_state_execute(self, value):
+        self.table.write(42, 7, value)
+    
+    def read_state_execute(self):
+        return self.table.read_immediate(42, 7)
+    
+    def write_state_memory(self, value):
+        self.table.write(42, 10, value)
+    
+    def read_state_memory(self):
+        return self.table.read_immediate(42, 10)
+    
+    def write_state_writeBack(self, value):
+        self.table.write(42, 13, value)
+    
+    def read_state_writeBack(self):
+        return self.table.read_immediate(42, 13)
+    
+    #=================================================================================
+    # Valores del timer e intentos
+    #=================================================================================
+    def write_timer_safe(self, value):
+        self.table.write(42, 16, value)
+    
+    def read_timer_safe(self):
+        return self.table.read_immediate(42, 16)
+    
+    def write_block_statusIn(self, value):
+        self.table.write(43, 16, value)
+    
+    def read_block_statusIn(self):
+        return self.table.read_immediate(43, 16)
+    
+    def write_block_statusOut(self, value):
+        self.table.write(44, 16, value)
+    
+    def read_block_statusOut(self):
+        return self.table.read_immediate(44, 16)
+    
+    def write_attempts_available(self, value):
+        self.table.write(42, 19, value)
+    
+    def read_attempts_available(self):
+        return self.table.read_immediate(42, 19)
         
     #=================================================================================
     # Funcion de reset para el inicio del simulador
