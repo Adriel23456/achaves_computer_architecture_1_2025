@@ -73,7 +73,16 @@ class PresentacionView:
         btn_enc_test = StyledButton(
             buttons_container,
             text="Prueba de Encriptación",
-            command=self._on_encriptar_tea,     # reutilizamos la misma callback
+            command=self._on_encriptar_tea,
+            design_manager=self.design_manager
+        )
+        btn_enc_test.pack(side=tk.LEFT, padx=5)
+        
+        # Botón "Prueba de Desencriptación"
+        btn_enc_test = StyledButton(
+            buttons_container,
+            text="Prueba de Desencriptación",
+            command=self._on_desencriptar_tea,
             design_manager=self.design_manager
         )
         btn_enc_test.pack(side=tk.LEFT, padx=5)
@@ -206,6 +215,8 @@ class PresentacionView:
             self.console.printConsoleLn(value)
     
     # ─────────────────────────────────────────────────────────────────────────────
+    # Convierte cualquier entrada (int, str bin/hex/dec) en un uint32
+    # ─────────────────────────────────────────────────────────────────────────────
     def _to_uint32(self, value) -> int:
         """
         Convierte 'value' (int o str) a un entero sin signo de 32 bits.
@@ -216,96 +227,156 @@ class PresentacionView:
             • "1234…"       (decimal)
         """
         if isinstance(value, int):
-            return value & 0xFFFFFFFF
-
+            out = value & 0xFFFFFFFF
+            return out
         if not isinstance(value, str):
             raise ValueError(f"Tipo no soportado: {type(value)}")
-
         v = value.strip()
         if v.lower().startswith("0x"):
-            return int(v, 16) & 0xFFFFFFFF
-        if v.lower().startswith("0b"):
-            return int(v, 2)  & 0xFFFFFFFF
-        return int(v) & 0xFFFFFFFF
-    
+            out = int(v, 16) & 0xFFFFFFFF
+        elif v.lower().startswith("0b"):
+            out = int(v, 2)  & 0xFFFFFFFF
+        else:
+            out = int(v)     & 0xFFFFFFFF
+        return out
+
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Encriptación TEA de todo dynamic_mem.bin  (100 % little-endian)
+    # ─────────────────────────────────────────────────────────────────────────────
     def _on_encriptar_tea(self):
         """
-        Lee cada bloque de 64 bits (8 bytes) del archivo Assets/dynamic_mem.bin,
-        aplica 32 rondas de TEA y crea el archivo parent_dir/out/dynamic_mem.enc.
+        Lee cada bloque de 64 bits (8 bytes) del archivo Assets/dynamic_mem.bin
+        en little-endian, aplica 32 rondas de TEA y crea
+        parent_dir/out/dynamic_mem.enc (también little-endian).
+        Imprime trazas detalladas para depuración.
         """
         try:
-            # ─── 1) Delta y clave siguen viniendo del Excel de control ───────────
-            delta_val = self.cpu_excel.read_d0_safe()[1]
-            delta = self._to_uint32(delta_val)
-
-            k = []
-            for fn in (
+            # 1) Delta y clave
+            delta = self._to_uint32(self.cpu_excel.read_d0_safe()[1])
+            k = [self._to_uint32(fn()[1]) for fn in (
                 self.cpu_excel.read_k0_0,
                 self.cpu_excel.read_k0_1,
                 self.cpu_excel.read_k0_2,
-                self.cpu_excel.read_k0_3,
-            ):
-                k.append(self._to_uint32(fn()[1]))
+                self.cpu_excel.read_k0_3
+            )]
 
-            # ─── 2) Localizar y leer dynamic_mem.bin ────────────────────────────
+            # 2) Leer memoria binaria
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-            parent_dir = current_dir.parent.parent
-            bin_file   = parent_dir / "Assets" / "dynamic_mem.bin"
+            parent_dir  = current_dir.parent.parent
+            bin_file    = parent_dir / "Assets" / "dynamic_mem.bin"
 
             if not bin_file.exists():
-                self.console.printConsoleLn(
-                    "[ERROR] No se encontró dynamic_mem.bin. "
-                    "Primero cargue la memoria dinámica."
-                )
+                self.console.printConsoleLn("[ERROR] No se encontró dynamic_mem.bin. Cárguela primero.")
                 return
 
-            data = bin_file.read_bytes()
-            byte_len = len(data)
+            data      = bin_file.read_bytes()
 
-            if byte_len % 8 != 0:
-                self.console.printConsoleLn(
-                    "[WARN] La memoria no está alineada a 64 bits. "
-                    "Se ignorarán los bytes sobrantes."
-                )
-                data = data[: byte_len // 8 * 8]
-
-            # ─── 3) Encriptar bloque a bloque ──────────────────────────────────
-            encrypted_words: list[int] = []
+            # 3) Encriptar bloque a bloque
+            encrypted = bytearray()
             for i in range(0, len(data), 8):
-                v0 = int.from_bytes(data[i : i + 4], "big")
-                v1 = int.from_bytes(data[i + 4 : i + 8], "big")
-
+                raw   = data[i : i + 8]
+                v0    = int.from_bytes(raw[0:4], "little")
+                v1    = int.from_bytes(raw[4:8], "little")
                 v0_enc, v1_enc = self.tea_encripcion(v0, v1, delta, k)
-                encrypted_words.extend([v0_enc, v1_enc])
+                encrypted.extend(v0_enc.to_bytes(4, "little"))
+                encrypted.extend(v1_enc.to_bytes(4, "little"))
 
-            if not encrypted_words:
+            if not encrypted:
                 self.console.printConsoleLn("[WARN] No se encontraron datos para encriptar.")
                 return
 
-            # ─── 4) Serializar salida y guardar ────────────────────────────────
-            out_bytes = bytearray()
-            for w in encrypted_words:
-                out_bytes.extend(w.to_bytes(4, "big"))
-
+            # 4) Guardar resultado encriptado
             out_dir  = parent_dir / "out"
             out_dir.mkdir(exist_ok=True)
             out_path = out_dir / "dynamic_mem.enc"
-            out_path.write_bytes(out_bytes)
+            out_path.write_bytes(encrypted)
 
             self.console.printConsoleLn(f"[INFO] Archivo encriptado generado en: {out_path}")
 
         except Exception as e:
             self.console.printConsoleLn(f"[ERROR] Encriptación fallida: {e}")
-    
+            
     # ─────────────────────────────────────────────────────────────────────────────
-    # TEA de 32 rondas: encripta un bloque de 64 bits (dos palabras de 32 bits)
+    # Des-encriptar dynamic_mem.enc → dynamic_mem.denc   (little-endian)
+    # ─────────────────────────────────────────────────────────────────────────────
+    def _on_desencriptar_tea(self):
+        """
+        Lee each bloque de 64 bits de Assets/dynamic_mem.bin (little-endian),
+        aplica 32 rondas inversas TEA y guarda el resultado en
+        out/dynamic_mem.denc  (también little-endian).
+        """
+        try:
+            # 1) Delta y clave desde el Excel (idénticos a los usados para cifrar)
+            delta = self._to_uint32(self.cpu_excel.read_d0_safe()[1])
+            k = [self._to_uint32(fn()[1]) for fn in (
+                self.cpu_excel.read_k0_0,
+                self.cpu_excel.read_k0_1,
+                self.cpu_excel.read_k0_2,
+                self.cpu_excel.read_k0_3
+            )]
+            
+            # 2) Leer memoria binaria
+            current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+            parent_dir  = current_dir.parent.parent
+            bin_file    = parent_dir / "Assets" / "dynamic_mem.bin"
+
+            if not bin_file.exists():
+                self.console.printConsoleLn("[ERROR] No se encontró out/dynamic_mem.enc. "
+                                            "Primero ejecuta la encriptación.")
+                return
+            data     = bin_file.read_bytes()
+
+            # 3) Des-encriptar bloque a bloque
+            decrypted = bytearray()
+            for i in range(0, len(data), 8):
+                raw   = data[i:i+8]
+                v0    = int.from_bytes(raw[0:4], "little")
+                v1    = int.from_bytes(raw[4:8], "little")
+
+                v0_dec, v1_dec = self.tea_desencripcion(v0, v1, delta, k)
+
+                decrypted.extend(v0_dec.to_bytes(4, "little"))
+                decrypted.extend(v1_dec.to_bytes(4, "little"))
+
+            if not decrypted:
+                self.console.printConsoleLn("[WARN] No se encontraron datos para desencriptar.")
+                return
+
+            # 4) Guardar resultado
+            out_path = parent_dir / "out" / "dynamic_mem.denc"
+            out_path.write_bytes(decrypted)
+            self.console.printConsoleLn(f"[INFO] Archivo desencriptado generado en: {out_path}")
+
+        except Exception as e:
+            self.console.printConsoleLn(f"[ERROR] Desencriptación fallida: {e}")
+
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Algoritmo TEA de 32 rondas (sin cambios, sólo mensajes de depuración)
     # ─────────────────────────────────────────────────────────────────────────────
     def tea_encripcion(self, v0: int, v1: int, delta: int, k: list[int]) -> tuple[int, int]:
         """Devuelve (v0', v1') después de 32 rondas de TEA."""
-        sum_  = 0
-        mask  = 0xFFFFFFFF  # para simular overflow de 32 bits
-        for _ in range(32):
+        sum_ = 0
+        mask = 0xFFFFFFFF
+        for rnd in range(32):
             sum_ = (sum_ + delta) & mask
             v0   = (v0 + (((v1 << 4) + k[0]) ^ (v1 + sum_) ^ ((v1 >> 5) + k[1]))) & mask
             v1   = (v1 + (((v0 << 4) + k[2]) ^ (v0 + sum_) ^ ((v0 >> 5) + k[3]))) & mask
+        return v0, v1
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Algoritmo TEA – 32 rondas inversas (des-encriptar 64 bits)
+    # ─────────────────────────────────────────────────────────────────────────────
+    def tea_desencripcion(self, v0: int, v1: int, delta: int,
+                          k: list[int]) -> tuple[int, int]:
+        """
+        Des-encripta un bloque (v0,v1) con 32 rondas TEA.
+        Retorna las dos palabras originales.
+        """
+        mask  = 0xFFFFFFFF
+        sum_  = (delta * 32) & mask       # valor inicial: delta * Nº rondas
+
+        for rnd in range(32):
+            v1 = (v1 - (((v0 << 4) + k[2]) ^ (v0 + sum_) ^ ((v0 >> 5) + k[3]))) & mask
+            v0 = (v0 - (((v1 << 4) + k[0]) ^ (v1 + sum_) ^ ((v1 >> 5) + k[1]))) & mask
+            sum_ = (sum_ - delta) & mask
         return v0, v1

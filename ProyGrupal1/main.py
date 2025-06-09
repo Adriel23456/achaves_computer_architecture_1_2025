@@ -53,6 +53,11 @@ def main():
     cpu_excel = CPUInfoExcel()
     #cpu_excel.reset(False) #Resetea la información de CPU al inicio
     
+    #value = cpu_excel.read_memory_block("0x0")
+    #print("Valor es:")
+    #print(value)
+    #value = cpu_excel.write_memory_block("0x0", "0xDEADBEEF")
+    
     """Función principal de la aplicación"""
     # Asegurar que la configuración existe
     config_path = ensure_config_exists()
