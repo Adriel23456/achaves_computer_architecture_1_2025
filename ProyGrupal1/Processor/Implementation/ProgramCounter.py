@@ -15,9 +15,8 @@ class ProgramCounter:
         self.pcsrc_w = 0 #PCSrcW
         self.mux = Mux()
 
-    def clock_cycle(self):
-        # no entiendo bien aún como estamos manejando el clock, dejo acá una simulación que supongo podría ser llamada cada ciclo de reloj
-        self.mux.input0 = self.pc + 8 #esta suma tambien verificarla de manera que funcione bien con el excel
+    def tick(self):
+        self.mux.input0 = self.pc + 8
         self.mux.input1 = self.result_w
         self.mux.select = self.pcsrc_w
 
