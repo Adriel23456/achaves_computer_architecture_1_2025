@@ -1,4 +1,6 @@
 class BinaryZeroExtend:
+
+    #el segundo parametro simplemente está para ver si servía, en true los muestra en consola, quitar de ser necesario
     @staticmethod
     def uxtb_32_to_32(input_val, show_bits=False):
 
