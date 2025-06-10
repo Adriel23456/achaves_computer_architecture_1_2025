@@ -14,20 +14,24 @@ class ProgramCounter:
         self.result_w = 0 #ALUOutW_C
         self.pcsrc_w = 0 #PCSrcW
         self.mux = Mux()
+        self.stall = False
 
     def tick(self):
-        self.mux.input0 = self.pc + 8
-        self.mux.input1 = self.result_w
-        self.mux.select = self.pcsrc_w
+        if self.stall:
+            self.stall = False
+            return None
+        else:
+            self.mux.input0 = self.pc + 8
+            self.mux.input1 = self.result_w
+            self.mux.select = self.pcsrc_w
 
-        # aplicar salida del MUX como nuevo PC
-        self.pc = self.mux.output()
+            # aplicar salida del MUX como nuevo PC
+            self.pc = self.mux.output()
 
-#    def set_result_w(self, value):
-#        self.result_w = value
+    def stall(self):
+        self.stall = True
+        return None
 
-#    def set_pcsrc_w(self, value):
-#        self.pcsrc_w = value
 
     def get_pc(self):
         return self.pc
