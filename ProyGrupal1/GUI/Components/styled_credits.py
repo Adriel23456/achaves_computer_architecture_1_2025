@@ -48,7 +48,7 @@ class StyledCredits(tk.Frame):
                     "Proyecto Grupal I – Grupo 5\n"
                     "Simulador de CPU Seguro de 64 bits\n"
                     "Instituto Tecnológico de Costa Rica – CE-4301 Arquitectura de Computadores I\n"
-                    "Profesor: Dr.-Ing. Jeferson González Gómez | Entrega: 6 jun 2025\n\n"
+                    "Profesor: Dr.-Ing. Jeferson González Gómez | Entrega: 14 jun 2025\n\n"
 
                     # Objetivo general
                     "Objetivo:\n"
