@@ -53,10 +53,30 @@ def main():
     cpu_excel = CPUInfoExcel()
     #cpu_excel.reset(False) #Resetea la información de CPU al inicio
     
-    #value = cpu_excel.read_memory_block("0x0")
+    cpu_excel.write_k0_0("0xDEADBEEA")
+    cpu_excel.write_k0_1("0xDEADBEEB")
+    cpu_excel.write_k0_2("0xDEADBEEC")
+    cpu_excel.write_k0_3("0xDEADBEED")
+    cpu_excel.table.execute_all()
+    val1 = cpu_excel.read_k0_0()
+    val2 = cpu_excel.read_k0_1()
+    val3 = cpu_excel.read_k0_2()
+    val4 = cpu_excel.read_k0_3()
+    print(f"k0[{1}] = {val1}")
+    print(f"k0[{2}] = {val2}")
+    print(f"k0[{3}] = {val3}")
+    print(f"k0[{4}] = {val4}")
+    
+    #Ejemplos de lectura y escritura:
+    #value = cpu_excel.write_memory_at_address("0x0", "0xDEADBEEF")
+    #value = cpu_excel.read_memory_at_address("0x0")
     #print("Valor es:")
     #print(value)
-    #value = cpu_excel.write_memory_block("0x0", "0xDEADBEEF")
+    
+    #value = cpu_excel.write_dynamic_memory("0x0", "0xDEADBEEF")
+    #value = cpu_excel.read_dynamic_memory("0x0")
+    #print("Valor es:")
+    #print(value)
     
     """Función principal de la aplicación"""
     # Asegurar que la configuración existe
