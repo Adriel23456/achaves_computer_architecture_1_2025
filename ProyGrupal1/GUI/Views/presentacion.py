@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 import hashlib
 import os
+import time
 from GUI.Components.styled_console import StyledConsole
 from GUI.Components.styled_button import StyledButton
 
@@ -253,6 +254,7 @@ class PresentacionView:
         Lee cada bloque de 64 bits desde la memoria dinámica,
         aplica TEA y guarda el resultado.
         """
+        start_time = time.time()
         try:
             # 1) Leer delta y claves (ya vienen con signo correcto)
             delta = self._parse_tea_value(self.cpu_excel.read_d0_safe()[1])
@@ -304,8 +306,13 @@ class PresentacionView:
 
             self.console.printConsoleLn(f"[INFO] Archivo encriptado: {out_path}")
             self.console.printConsoleLn(f"[INFO] Bloques procesados: {num_blocks}")
+            
+            elapsed = time.time() - start_time
+            self.console.printConsoleLn(f"[TIMER] Encriptación TEA duró {elapsed:.3f} segundos")
 
         except Exception as e:
+            elapsed = time.time() - start_time
+            self.console.printConsoleLn(f"[TIMER] Encriptación TEA abortada tras {elapsed:.3f} s")
             self.console.printConsoleLn(f"[ERROR] Encriptación fallida: {e}")
             
     # ─────────────────────────────────────────────────────────────────────────────
@@ -317,6 +324,7 @@ class PresentacionView:
         cpu_excel.read_dynamic_memory(), aplica 32 rondas inversas TEA
         y guarda el resultado en out/dynamic_mem.denc.
         """
+        start_time = time.time()
         try:
             # 1) Delta y clave desde el Excel (idénticos a los usados para cifrar)
             delta = self._parse_tea_value(self.cpu_excel.read_d0_safe()[1])
@@ -374,8 +382,12 @@ class PresentacionView:
             
             self.console.printConsoleLn(f"[INFO] Archivo desencriptado generado en: {out_path}")
             self.console.printConsoleLn(f"[INFO] Total de bloques desencriptados: {num_blocks}")
-
+            
+            elapsed = time.time() - start_time
+            self.console.printConsoleLn(f"[TIMER] Desencriptación TEA duró {elapsed:.3f} segundos")
         except Exception as e:
+            elapsed = time.time() - start_time
+            self.console.printConsoleLn(f"[TIMER] Desencriptación TEA abortada tras {elapsed:.3f} s")
             self.console.printConsoleLn(f"[ERROR] Desencriptación fallida: {e}")
 
     # ─────────────────────────────────────────────────────────────────────────────
