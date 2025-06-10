@@ -965,10 +965,10 @@ class CPUInfoExcel:
             block_index: Índice del bloque (0-63)
         
         Returns:
-            int: Valor del bloque o 0x00000000 si fuera de rango
+            int: Valor del bloque con signo o 0 si fuera de rango
         """
         if block_index < 0 or block_index >= 64:
-            return 0x00000000
+            return 0
         
         # Calcular posición en la tabla
         row = self._memory_base_row + block_index
@@ -977,19 +977,19 @@ class CPUInfoExcel:
             data_type, value = self.table.read_immediate(row, self._memory_base_col)
             
             if value is None:
-                return 0x00000000
+                return 0
             
-            # Convertir a entero
+            # Convertir a entero - value ya viene con signo correcto desde _detect_data_type
             if isinstance(value, str):
                 if value.startswith('0x'):
                     return int(value, 16)
                 elif value.startswith('0b'):
                     return int(value, 2)
             
-            return int(value) & 0xFFFFFFFF
+            return int(value)  # Ya tiene signo correcto
             
         except:
-            return 0x00000000
+            return 0
 
     def write_memory_block(self, block_index, value):
         """
@@ -997,7 +997,7 @@ class CPUInfoExcel:
         
         Args:
             block_index: Índice del bloque (0-63)
-            value: Valor a escribir
+            value: Valor a escribir (con signo)
         """
         if block_index < 0 or block_index >= 64:
             return
@@ -1005,11 +1005,15 @@ class CPUInfoExcel:
         # Calcular posición en la tabla
         row = self._memory_base_row + block_index
         
-        # Asegurar que el valor sea de 32 bits
-        value = int(value) & 0xFFFFFFFF
+        # Convertir valor con signo a entero
+        value = int(value)
         
-        # Escribir en formato hexadecimal
-        self.table.write(row, self._memory_base_col, f'0x{value:08X}')
+        # Validar rango de int32
+        if value < -2147483648 or value > 2147483647:
+            raise ValueError(f"Valor {value} fuera de rango para int32")
+        
+        # Escribir en formato decimal con signo
+        self.table.write(row, self._memory_base_col, f'0d{value}')
 
     def read_memory_at_address(self, address):
         """
@@ -1286,10 +1290,11 @@ class CPUInfoExcel:
                 signed_value = value
             return f"0d{signed_value}"
 
-    # Métodos de compatibilidad para migración gradual
+    # Métodos de compatibilidad actualizados
     def read_g(self, index):
         """Compatibilidad con código existente"""
-        return (DataType.HEX, self.read_memory_block(index))
+        value = self.read_memory_block(index)
+        return (DataType.INT, value)  # Retornar como INT con signo
 
     def write_g(self, index, value):
         """Compatibilidad con código existente"""
@@ -1334,8 +1339,8 @@ class CPUInfoExcel:
                     # No hay suficientes datos
                     return self._format_output(0, format_type, 32)
                 
-                # Convertir bytes a entero (little-endian)
-                value = int.from_bytes(data, byteorder='little', signed=False)
+                # Convertir bytes a entero CON SIGNO (complemento a 2)
+                value = int.from_bytes(data, byteorder='little', signed=True)
                 
             return self._format_output(value, format_type, 32)
             
@@ -1389,16 +1394,19 @@ class CPUInfoExcel:
                     with open(bin_file, 'ab') as f:
                         f.write(b'\x00' * (addr_decimal + 4 - current_size))
             
-            # Escribir los 4 bytes
+            # Escribir los 4 bytes CON SIGNO
             with open(bin_file, 'r+b') as f:
                 f.seek(addr_decimal)
-                f.write(value_decimal.to_bytes(4, byteorder='little', signed=False))
+                # Convertir a int32 con signo si es necesario
+                if value_decimal > 2147483647:
+                    # Es un uint32 que debe interpretarse como negativo
+                    value_decimal = value_decimal - 4294967296
+                f.write(value_decimal.to_bytes(4, byteorder='little', signed=True))
             
             print(f"✓ Escrito en memoria dinámica [{address}] = {value}")
             
         except Exception as e:
             print(f"✗ Error escribiendo memoria dinámica: {e}")
-    
         
     #=================================================================================
     # Valor de la instruccion actual por estado

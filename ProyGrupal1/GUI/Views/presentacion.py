@@ -215,128 +215,154 @@ class PresentacionView:
             self.console.printConsoleLn(value)
     
     # ─────────────────────────────────────────────────────────────────────────────
-    # Convierte cualquier entrada (int, str bin/hex/dec) en un uint32
+    # Parseo para obtener valores decimales apropiados
     # ─────────────────────────────────────────────────────────────────────────────
-    def _to_uint32(self, value) -> int:
+    def _parse_tea_value(self, value) -> int:
         """
-        Convierte 'value' (int o str) a un entero sin signo de 32 bits.
-        Acepta:
-            • int           (se devuelve tal cual & 0xFFFFFFFF)
-            • "0x…" / "0X…" (hexadecimal)
-            • "0b…" / "0B…" (binario)
-            • "1234…"       (decimal)
+        Parsea un valor para usarlo en TEA.
+        NO convierte entre signo/sin signo, solo parsea el string a int.
+        
+        Args:
+            value: int o str con el valor
+            
+        Returns:
+            int: Valor parseado
         """
         if isinstance(value, int):
-            out = value & 0xFFFFFFFF
-            return out
+            return value
+            
         if not isinstance(value, str):
             raise ValueError(f"Tipo no soportado: {type(value)}")
+            
         v = value.strip()
+        
         if v.lower().startswith("0x"):
-            out = int(v, 16) & 0xFFFFFFFF
+            return int(v, 16)
         elif v.lower().startswith("0b"):
-            out = int(v, 2)  & 0xFFFFFFFF
+            return int(v, 2)
+        elif v.lower().startswith("0d"):
+            return int(v[2:])
         else:
-            out = int(v)     & 0xFFFFFFFF
-        return out
+            return int(v)
 
     # ─────────────────────────────────────────────────────────────────────────────
-    # Encriptación TEA de todo dynamic_mem.bin  (100 % little-endian)
+    # Encriptación TEA usando memoria dinámica desde cpu_excel
     # ─────────────────────────────────────────────────────────────────────────────
     def _on_encriptar_tea(self):
         """
-        Lee cada bloque de 64 bits (8 bytes) del archivo Assets/dynamic_mem.bin
-        en little-endian, aplica 32 rondas de TEA y crea
-        parent_dir/out/dynamic_mem.enc (también little-endian).
-        Imprime trazas detalladas para depuración.
+        Lee cada bloque de 64 bits desde la memoria dinámica,
+        aplica TEA y guarda el resultado.
         """
         try:
-            # 1) Delta y clave
-            delta = self._to_uint32(self.cpu_excel.read_d0_safe()[1])
-            k = [self._to_uint32(fn()[1]) for fn in (
+            # 1) Leer delta y claves (ya vienen con signo correcto)
+            delta = self._parse_tea_value(self.cpu_excel.read_d0_safe()[1])
+            k = [self._parse_tea_value(fn()[1]) for fn in (
                 self.cpu_excel.read_k0_0,
                 self.cpu_excel.read_k0_1,
                 self.cpu_excel.read_k0_2,
                 self.cpu_excel.read_k0_3
             )]
 
-            # 2) Leer memoria binaria
+            # 2) Verificar archivo
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-            parent_dir  = current_dir.parent.parent
-            bin_file    = parent_dir / "Assets" / "dynamic_mem.bin"
+            parent_dir = current_dir.parent.parent
+            bin_file = parent_dir / "Assets" / "dynamic_mem.bin"
 
             if not bin_file.exists():
-                self.console.printConsoleLn("[ERROR] No se encontró dynamic_mem.bin. Cárguela primero.")
+                self.console.printConsoleLn("[ERROR] No se encontró dynamic_mem.bin.")
                 return
 
-            data      = bin_file.read_bytes()
+            file_size = os.path.getsize(bin_file)
+            num_blocks = file_size // 8
 
-            # 3) Encriptar bloque a bloque
+            # 3) Procesar bloques
             encrypted = bytearray()
-            for i in range(0, len(data), 8):
-                raw   = data[i : i + 8]
-                v0    = int.from_bytes(raw[0:4], "little")
-                v1    = int.from_bytes(raw[4:8], "little")
+            
+            for block_idx in range(num_blocks):
+                addr0 = block_idx * 8
+                addr1 = block_idx * 8 + 4
+                
+                # Leer valores (ya vienen con signo correcto)
+                v0 = self._parse_tea_value(self.cpu_excel.read_dynamic_memory(f"0x{addr0:X}"))
+                v1 = self._parse_tea_value(self.cpu_excel.read_dynamic_memory(f"0x{addr1:X}"))
+                
+                # TEA trabaja con los valores tal como están
                 v0_enc, v1_enc = self.tea_encripcion(v0, v1, delta, k)
-                encrypted.extend(v0_enc.to_bytes(4, "little"))
-                encrypted.extend(v1_enc.to_bytes(4, "little"))
+                
+                # Guardar resultado (interpretar como bytes)
+                encrypted.extend((v0_enc & 0xFFFFFFFF).to_bytes(4, "little", signed=False))
+                encrypted.extend((v1_enc & 0xFFFFFFFF).to_bytes(4, "little", signed=False))
+                
+                if (block_idx + 1) % 10 == 0:
+                    self.console.printConsoleLn(f"[INFO] Procesados {block_idx + 1}/{num_blocks} bloques")
 
-            if not encrypted:
-                self.console.printConsoleLn("[WARN] No se encontraron datos para encriptar.")
-                return
-
-            # 4) Guardar resultado encriptado
-            out_dir  = parent_dir / "out"
+            # 4) Guardar
+            out_dir = parent_dir / "out"
             out_dir.mkdir(exist_ok=True)
             out_path = out_dir / "dynamic_mem.enc"
             out_path.write_bytes(encrypted)
 
-            self.console.printConsoleLn(f"[INFO] Archivo encriptado generado en: {out_path}")
+            self.console.printConsoleLn(f"[INFO] Archivo encriptado: {out_path}")
+            self.console.printConsoleLn(f"[INFO] Bloques procesados: {num_blocks}")
 
         except Exception as e:
             self.console.printConsoleLn(f"[ERROR] Encriptación fallida: {e}")
             
     # ─────────────────────────────────────────────────────────────────────────────
-    # Des-encriptar dynamic_mem.enc → dynamic_mem.denc   (little-endian)
+    # Des-encriptar usando memoria dinámica desde cpu_excel
     # ─────────────────────────────────────────────────────────────────────────────
     def _on_desencriptar_tea(self):
         """
-        Lee each bloque de 64 bits de Assets/dynamic_mem.bin (little-endian),
-        aplica 32 rondas inversas TEA y guarda el resultado en
-        out/dynamic_mem.denc  (también little-endian).
+        Lee cada bloque de 64 bits desde la memoria dinámica usando
+        cpu_excel.read_dynamic_memory(), aplica 32 rondas inversas TEA
+        y guarda el resultado en out/dynamic_mem.denc.
         """
         try:
             # 1) Delta y clave desde el Excel (idénticos a los usados para cifrar)
-            delta = self._to_uint32(self.cpu_excel.read_d0_safe()[1])
-            k = [self._to_uint32(fn()[1]) for fn in (
+            delta = self._parse_tea_value(self.cpu_excel.read_d0_safe()[1])
+            k = [self._parse_tea_value(fn()[1]) for fn in (
                 self.cpu_excel.read_k0_0,
                 self.cpu_excel.read_k0_1,
                 self.cpu_excel.read_k0_2,
                 self.cpu_excel.read_k0_3
             )]
             
-            # 2) Leer memoria binaria
+            # 2) Verificar que existe el archivo de memoria dinámica
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir  = current_dir.parent.parent
             bin_file    = parent_dir / "Assets" / "dynamic_mem.bin"
 
             if not bin_file.exists():
-                self.console.printConsoleLn("[ERROR] No se encontró out/dynamic_mem.enc. "
-                                            "Primero ejecuta la encriptación.")
+                self.console.printConsoleLn("[ERROR] No se encontró dynamic_mem.bin. "
+                                            "Primero cargue la memoria.")
                 return
-            data     = bin_file.read_bytes()
+                
+            # Obtener tamaño del archivo
+            file_size = os.path.getsize(bin_file)
+            num_blocks = file_size // 8
 
-            # 3) Des-encriptar bloque a bloque
+            # 3) Leer memoria dinámica usando cpu_excel y des-encriptar
             decrypted = bytearray()
-            for i in range(0, len(data), 8):
-                raw   = data[i:i+8]
-                v0    = int.from_bytes(raw[0:4], "little")
-                v1    = int.from_bytes(raw[4:8], "little")
-
+            
+            for block_idx in range(num_blocks):
+                # Calcular direcciones
+                addr0 = block_idx * 8
+                addr1 = block_idx * 8 + 4
+                
+                # Leer valores (ya vienen con signo correcto)
+                v0 = self._parse_tea_value(self.cpu_excel.read_dynamic_memory(f"0x{addr0:X}"))
+                v1 = self._parse_tea_value(self.cpu_excel.read_dynamic_memory(f"0x{addr1:X}"))
+                
+                # Aplicar TEA inverso
                 v0_dec, v1_dec = self.tea_desencripcion(v0, v1, delta, k)
-
+                
+                # Agregar al resultado
                 decrypted.extend(v0_dec.to_bytes(4, "little"))
                 decrypted.extend(v1_dec.to_bytes(4, "little"))
+                
+                # Mensaje de progreso
+                if (block_idx + 1) % 10 == 0:
+                    self.console.printConsoleLn(f"[INFO] Procesados {block_idx + 1}/{num_blocks} bloques")
 
             if not decrypted:
                 self.console.printConsoleLn("[WARN] No se encontraron datos para desencriptar.")
@@ -345,7 +371,9 @@ class PresentacionView:
             # 4) Guardar resultado
             out_path = parent_dir / "out" / "dynamic_mem.denc"
             out_path.write_bytes(decrypted)
+            
             self.console.printConsoleLn(f"[INFO] Archivo desencriptado generado en: {out_path}")
+            self.console.printConsoleLn(f"[INFO] Total de bloques desencriptados: {num_blocks}")
 
         except Exception as e:
             self.console.printConsoleLn(f"[ERROR] Desencriptación fallida: {e}")

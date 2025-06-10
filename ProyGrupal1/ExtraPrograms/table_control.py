@@ -179,6 +179,13 @@ class TableControl:
             print(f"⚠ Error al recargar archivo: {e}")
             raise
     
+    def _uint32_to_int32(self, value: int) -> int:
+        """Convierte un valor uint32 a int32 con signo usando complemento a 2"""
+        value = value & 0xFFFFFFFF  # Asegurar que es de 32 bits
+        if value > 2147483647:
+            return value - 4294967296
+        return value
+
     def _detect_data_type(self, cell_value: Any) -> Tuple[DataType, Any]:
         """
         Detecta el tipo de dato basado en el contenido de la celda.
@@ -206,7 +213,8 @@ class TableControl:
             try:
                 decimal_part = value_str[7:]  # Remover "Int: 0d"
                 actual_value = int(decimal_part)
-                return DataType.INT, actual_value
+                # Aplicar conversión uint32 a int32
+                return DataType.INT, self._uint32_to_int32(actual_value)
             except ValueError:
                 return DataType.STRING, value_str
                 
@@ -221,7 +229,8 @@ class TableControl:
                     # Intentar convertir a decimal si no es muy grande
                     if len(binary_part) <= 64:
                         actual_value = int(f"0b{binary_part}", 2)
-                        return DataType.BINARY, actual_value
+                        # Aplicar conversión uint32 a int32
+                        return DataType.BINARY, self._uint32_to_int32(actual_value)
                     else:
                         return DataType.BINARY, f"0b{binary_part}"
                 except ValueError:
@@ -238,7 +247,8 @@ class TableControl:
                     # Intentar convertir a decimal si no es muy grande
                     if len(hex_part) <= 16:
                         actual_value = int(f"0x{hex_part}", 16)
-                        return DataType.HEX, actual_value
+                        # Aplicar conversión uint32 a int32
+                        return DataType.HEX, self._uint32_to_int32(actual_value)
                     else:
                         return DataType.HEX, f"0x{hex_part}"
                 except ValueError:
@@ -246,7 +256,8 @@ class TableControl:
         
         # Si no coincide con ningún patrón, intentar detectar tipo nativo
         elif isinstance(cell_value, int) and not isinstance(cell_value, bool):
-            return DataType.INT, cell_value
+            # Aplicar conversión de uint32 a int32 con signo
+            return DataType.INT, self._uint32_to_int32(cell_value)
         
         else:
             # Cualquier otro caso es string
@@ -460,7 +471,7 @@ class TableControl:
         
         Soporta:
         - String: 'texto' o "texto"
-        - Int: 0d12345 (decimal)
+        - Int: 0d12345 (decimal, soporta negativos con complemento a 2)
         - Binary: 0b1010101
         - Hex: 0xDEADBEEF
         """
@@ -480,9 +491,13 @@ class TableControl:
         elif content_str.startswith("0d"):
             try:
                 decimal_value = int(content_str[2:])
+                # Validar rango de int32
+                if decimal_value < -2147483648 or decimal_value > 2147483647:
+                    raise ValueError(f"Valor {decimal_value} fuera de rango para int32")
+                # Almacenar el valor tal cual (negativo o positivo)
                 return decimal_value, f"Int: 0d{decimal_value}"
-            except ValueError:
-                raise ValueError(f"Valor decimal inválido: {content_str}")
+            except ValueError as e:
+                raise ValueError(f"Valor decimal inválido: {content_str} - {e}")
         
         # Binario con prefijo 0b
         elif content_str.startswith("0b"):
@@ -520,6 +535,9 @@ class TableControl:
         
         # Si es un entero simple sin prefijo
         elif isinstance(content, int) and not isinstance(content, bool):
+            # Validar rango y almacenar tal cual
+            if content < -2147483648 or content > 2147483647:
+                raise ValueError(f"Valor {content} fuera de rango para int32")
             return content, f"Int: 0d{content}"
         
         # Cualquier otro caso, tratar como string sin comillas
