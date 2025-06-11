@@ -991,29 +991,28 @@ class CPUInfoExcel:
         except:
             return 0
 
-    def write_memory_block(self, block_index, value):
+    def write_memory_block(self, block_index: int, value: int, fmt: str = "decimal"):
         """
-        Escribe un bloque de memoria de 32 bits.
-        
-        Args:
-            block_index: Índice del bloque (0-63)
-            value: Valor a escribir (con signo)
+        Guarda un bloque de 32 bits.
+
+        • `fmt`  →  'hex' · 'binary' · 'decimal'
+        • Siempre se almacena con el prefijo adecuado (0x, 0b, 0d).
         """
-        if block_index < 0 or block_index >= 64:
+        if not (0 <= block_index < 64):
             return
-        
-        # Calcular posición en la tabla
+
+        u32 = int(value) & 0xFFFFFFFF                # 32 bits sin signo
+
+        if fmt == "hex":
+            content = f"0x{u32:08X}"                 # Hex: 0xDEADBEEF
+        elif fmt == "binary":
+            content = f"0b{u32:032b}"                # Binary: 0b1110…
+        else:                                        # decimal con signo
+            signed = u32 if u32 < 0x80000000 else u32 - 0x100000000
+            content = f"0d{signed}"
+
         row = self._memory_base_row + block_index
-        
-        # Convertir valor con signo a entero
-        value = int(value)
-        
-        # Validar rango de int32
-        if value < -2147483648 or value > 2147483647:
-            raise ValueError(f"Valor {value} fuera de rango para int32")
-        
-        # Escribir en formato decimal con signo
-        self.table.write(row, self._memory_base_col, f'0d{value}')
+        self.table.write(row, self._memory_base_col, content)
 
     def read_memory_at_address(self, address):
         """
@@ -1105,96 +1104,75 @@ class CPUInfoExcel:
 
     def write_memory_at_address(self, address, value):
         """
-        Escribe datos en la memoria en la dirección especificada.
-        
-        Args:
-            address: Dirección de memoria (mismo formato que value)
-            value: Valor a escribir (mismo formato que address)
+        Escribe exactamente 32 bits (4 bytes) en la memoria general.
+
+        ▸ `address`  y  `value` **deben** estar en el mismo formato:
+            ─  binario:  0b…  
+            ─  hexadecimal:  0x…  
+            ─  decimal con prefijo: 0d…  (o sin prefijo, que se trata como decimal)
+
+        ▸ Para 0b/0x asumimos que YA están en complemento-a-2.
+        Para 0d aplicamos complemento-a-2 si el número es negativo.
+
+        ▸ El valor se almacena con el MISMO formato con el que llegó.
         """
-        size_bits = 32
+        size_bits  = 32
+        size_bytes = 4
+        max_addr   = 64 * 4                           # 256 bytes (= 64 bloques × 4)
+
         try:
-            # Validar que address y value tengan el mismo formato
-            addr_str = str(address).strip()
-            value_str = str(value).strip()
-            
-            # Detectar formatos
-            addr_format = self._detect_format(addr_str)
-            value_format = self._detect_format(value_str)
-            
-            if addr_format != value_format:
-                raise ValueError(f"Address y value deben tener el mismo formato. "
-                            f"Address: {addr_format}, Value: {value_format}")
-            
-            # Parsear valores
-            addr_decimal = self._parse_address(address)
-            value_decimal = self._parse_value(value, size_bits)
-            
-            if size_bits not in [8, 16, 32]:
-                raise ValueError(f"Tamaño no soportado: {size_bits} bits")
-            
-            size_bytes = size_bits // 8
-            max_address = 64 * 4
-            
-            if addr_decimal < 0 or addr_decimal >= max_address:
-                return
-            
-            if addr_decimal + size_bytes > max_address:
-                return
-            
-            start_block = addr_decimal // 4
-            start_offset = addr_decimal % 4
-            end_block = (addr_decimal + size_bytes - 1) // 4
-            
-            if start_block == end_block:
-                # Escritura en un solo bloque
-                current_value = self.read_memory_block(start_block)
-                
-                shift = start_offset * 8
-                mask = (1 << size_bits) - 1
-                clear_mask = ~(mask << shift) & 0xFFFFFFFF
-                
-                new_value = (current_value & clear_mask) | ((value_decimal & mask) << shift)
-                self.write_memory_block(start_block, new_value)
-                
+            # ─── 1. Validación de formatos ──────────────────────────────────────────
+            addr_fmt  = self._detect_format(str(address).strip())
+            value_fmt = self._detect_format(str(value).strip())
+            if addr_fmt != value_fmt:
+                raise ValueError(f"Address y value deben tener el mismo formato "
+                                f"(Address: {addr_fmt}, Value: {value_fmt})")
+
+            # ─── 2. Parseo a enteros sin signo de 32 bits ───────────────────────────
+            addr_dec  = self._parse_address(address)
+            val_u32   = self._parse_value(value, size_bits) & 0xFFFFFFFF
+
+            # ─── 3. Límite de la memoria ───────────────────────────────────────────
+            if addr_dec < 0 or addr_dec + size_bytes > max_addr:
+                return                                        # fuera de rango
+
+            # ─── 4. Cálculo de bloques y offsets ───────────────────────────────────
+            start_blk   = addr_dec // 4
+            start_off   = addr_dec % 4
+            end_blk     = (addr_dec + 3) // 4                # siempre 4 bytes -> máx 2 bloques
+
+            # ─── 5. Escritura ──────────────────────────────────────────────────────
+            if start_blk == end_blk:
+                # —— Todo cae en un solo bloque ——
+                cur   = self.read_memory_block(start_blk) & 0xFFFFFFFF
+                shift = start_off * 8
+                mask  = 0xFFFFFFFF
+                clr   = ~(mask << shift) & 0xFFFFFFFF
+                new_v = (cur & clr) | (val_u32 << shift)
+                self.write_memory_block(start_blk, new_v & 0xFFFFFFFF, value_fmt)
+
             else:
-                # Escritura cruza bloques
-                bits_written = 0
-                
+                # —— Se cruzan dos bloques ——
+                bits_first = (4 - start_off) * 8             # 8, 16 o 24
                 # Primer bloque
-                current_value = self.read_memory_block(start_block)
-                bits_in_first = (4 - start_offset) * 8
-                shift = start_offset * 8
-                
-                preserve_low = (1 << shift) - 1
-                preserve_high = ~((1 << (shift + bits_in_first)) - 1) & 0xFFFFFFFF
-                value_part = value_decimal & ((1 << bits_in_first) - 1)
-                
-                new_value = (current_value & preserve_low) | (value_part << shift) | (current_value & preserve_high)
-                self.write_memory_block(start_block, new_value)
-                
-                value_decimal >>= bits_in_first
-                bits_written = bits_in_first
-                
-                # Bloques siguientes
-                for block_idx in range(start_block + 1, end_block + 1):
-                    current_value = self.read_memory_block(block_idx)
-                    
-                    if block_idx == end_block:
-                        # Último bloque
-                        remaining_bits = size_bits - bits_written
-                        mask = (1 << remaining_bits) - 1
-                        preserve_mask = ~mask & 0xFFFFFFFF
-                        
-                        new_value = (value_decimal & mask) | (current_value & preserve_mask)
-                        self.write_memory_block(block_idx, new_value)
-                    else:
-                        # Bloque completo
-                        self.write_memory_block(block_idx, value_decimal & 0xFFFFFFFF)
-                        value_decimal >>= 32
-            
-            # Ejecutar escrituras pendientes
-            self.table.execute_writes_only()
-            
+                cur0    = self.read_memory_block(start_blk) & 0xFFFFFFFF
+                low     = (1 << (start_off*8)) - 1
+                high    = ~((1 << (start_off*8 + bits_first)) - 1) & 0xFFFFFFFF
+                part0   = val_u32 & ((1 << bits_first) - 1)
+                new0    = (cur0 & low) | (part0 << (start_off*8)) | (cur0 & high)
+                self.write_memory_block(start_blk, new0 & 0xFFFFFFFF, value_fmt)
+
+                # Segundo bloque (resto)
+                val_u32 >>= bits_first
+                remain   = 32 - bits_first                    # 24,16,8
+                cur1     = self.read_memory_block(end_blk) & 0xFFFFFFFF
+                mask1    = (1 << remain) - 1
+                new1     = (cur1 & ~mask1) | (val_u32 & mask1)
+                self.write_memory_block(end_blk, new1 & 0xFFFFFFFF, value_fmt)
+
+            # ─── 6. Guardar inmediatamente en el Excel ─────────────────────────────
+            self.table.execute_all()
+
         except Exception as e:
             print(f"✗ Error escribiendo memoria: {e}")
 

@@ -48,7 +48,7 @@ class StyledIDE(tk.Frame):
         # Widget de texto principal - EDITABLE
         self.text_widget = tk.Text(
             text_frame,
-            wrap=tk.NONE,  # Sin word wrapping para código
+            wrap=tk.WORD,
             font=design_manager.get_font('normal'),
             bg=colors['entry_bg'],
             fg=colors['entry_fg'],
@@ -75,6 +75,10 @@ class StyledIDE(tk.Frame):
         self.text_widget.bind('<Configure>', self._on_text_configure)
         self.text_widget.bind('<Button-4>', lambda e: self._on_mousewheel(e, -1))
         self.text_widget.bind('<Button-5>', lambda e: self._on_mousewheel(e, 1))
+        
+        #Funciones para la determinación correcta de las lineas
+        self.text_widget.bind("<<Modified>>", self._on_text_modified)
+        self.text_widget.edit_modified(False)
         
         # Inicializar
         self._update_line_numbers()
@@ -121,6 +125,21 @@ class StyledIDE(tk.Frame):
         """Maneja el scroll con la rueda del mouse"""
         self.text_widget.yview_scroll(direction * 3, "units")
         self._update_line_numbers()
+        
+    def _on_text_modified(self, event=None):
+        """
+        Se dispara en cualquier cambio de contenido.
+        Programamos la actualización para el próximo ciclo de lazo
+        de eventos (idle) y reiniciamos el flag modified.
+        """
+        self.text_widget.edit_modified(False)
+        # Actualizar números y barra UNA vez cuando termine el repintado
+        self.after_idle(self._refresh_metrics)
+    
+    def _refresh_metrics(self):
+        """Redibuja números de línea y revisa la visibilidad del scrollbar"""
+        self._update_line_numbers()
+        self._check_scrollbar_visibility()
     
     def _update_line_numbers(self):
         """Actualiza los números de línea"""
