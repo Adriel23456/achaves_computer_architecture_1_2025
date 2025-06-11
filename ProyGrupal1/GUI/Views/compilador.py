@@ -350,35 +350,33 @@ class CompiladorView:
     
     def _on_compile(self):
         """Maneja el evento de compilar con las restricciones necesarias"""
-        print("\n[INFO] Iniciando proceso de compilación...")
+        self.controller.print_console(f"\n[INFO] Iniciando proceso de compilación...")
         
         # Caso 1: Nunca se ha guardado
         if not self.current_file:
-            print("[WARN] El archivo debe guardarse antes de compilar")
-            print("[INFO] Abriendo diálogo de guardado...")
+            self.controller.print_console(f"[WARN] El archivo debe guardarse antes de compilar")
+            self.controller.print_console(f"[INFO] Abriendo diálogo de guardado...")
             self._save_as()
             
             # Si después de intentar guardar aún no hay archivo, cancelar
             if not self.current_file:
-                print("[ERROR] Compilación cancelada - No se guardó el archivo")
+                self.controller.print_console(f"[ERROR] Compilación cancelada - No se guardó el archivo")
                 return
         
         # Caso 2: Archivo guardado pero modificado
         elif self.is_modified:
-            print(f"[INFO] Detectados cambios en {os.path.basename(self.current_file)}")
-            print("[INFO] Aplicando autoguardado...")
+            self.controller.print_console(f"[INFO] Detectados cambios en {os.path.basename(self.current_file)}")
+            self.controller.print_console(f"[INFO] Aplicando autoguardado...")
             self._save_to_file(self.current_file)
         
         # Caso 3: Archivo guardado sin cambios
         else:
-            print(f"[INFO] Archivo listo: {os.path.basename(self.current_file)}")
+            self.controller.print_console(f"[INFO] Archivo listo: {os.path.basename(self.current_file)}")
         
         # Proceder con la compilación
         print("[INFO] Compilando código...")
         print(f"[INFO] Archivo fuente: {self.current_file}")
-        print("[INFO] Analizando sintaxis...")
-        print("[INFO] Generando código binario...")
-        print("[SUCCESS] Compilación completada exitosamente")
+        print(f"[INFO] Contenido actual del archivo por compilar: \n {self.ide.get()}")
     
     def _on_grammar(self):
         """Muestra la gramática desde el archivo Assets/SecureCPU.g4"""
@@ -458,13 +456,12 @@ class CompiladorView:
             with open(target_path, 'wb') as f:
                 f.write(binary_content)
             
-            # 4. Intentar actualizar la vista de Presentación si está disponible
-            # Esto requiere acceso al controller y a las otras vistas
-            # Por ahora solo mostramos un mensaje de éxito
-            messagebox.showinfo(
-                "Éxito", 
-                f"Memoria de instrucciones cargada:\n{os.path.basename(file_path)}\n\n"
-                f"Tamaño: {len(binary_content)} bytes"
+            # 4. Reportar el resultado en la consola global
+            self.controller.print_console(
+                f"[INFO] Memoria de instrucciones cargada: {os.path.basename(file_path)}"
+            )
+            self.controller.print_console(
+                f"[INFO] Tamaño: {len(binary_content)} bytes"
             )
             
         except Exception as e:

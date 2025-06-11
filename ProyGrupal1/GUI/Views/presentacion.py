@@ -89,6 +89,15 @@ class PresentacionView:
         )
         btn_enc_test.pack(side=tk.LEFT, padx=5)
         
+        #Botón "Vaciar"
+        btn_clear = StyledButton(
+            buttons_container,
+            text="Vaciar",
+            command=self._on_clear_console,
+            design_manager=self.design_manager
+        )
+        btn_clear.pack(side=tk.LEFT, padx=5)
+        
         # Agregar texto de bienvenida
         self._add_welcome_message()
     
@@ -210,6 +219,12 @@ class PresentacionView:
                 md5_hash.update(chunk)
         
         return md5_hash.hexdigest()
+    
+    def _on_clear_console(self):
+        """Vacía completamente la consola de presentación."""
+        if not self.console:
+            return
+        self.console.clear()
     
     def printConsoleLn(self, value):
         """Método público para imprimir en la consola desde fuera de la vista"""

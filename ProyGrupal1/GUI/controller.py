@@ -154,6 +154,16 @@ class ViewController:
         """Retorna una vista específica del cache"""
         return self.loaded_views.get(view_name)
     
+    # Método público para escribir en la consola de presentación (lo puede usar cualquier vista)
+    def print_console(self, text: str):
+        """
+        Envía un mensaje a la consola de PresentacionView (si existe).
+        Si la vista aún no se ha cargado, simplemente ignora el mensaje.
+        """
+        presentacion_view = self.get_view('Presentación')
+        if presentacion_view:
+            presentacion_view.printConsoleLn(text)
+    
     def clear_cache(self):
         """Limpia el cache de vistas (útil para desarrollo)"""
         for view in self.loaded_views.values():
