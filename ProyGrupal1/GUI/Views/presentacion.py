@@ -11,13 +11,14 @@ from GUI.Components.styled_console import StyledConsole
 from GUI.Components.styled_button import StyledButton
 
 class PresentacionView:
-    def __init__(self, parent, base_dir, config, design_manager, on_config_change, cpu_excel):
+    def __init__(self, parent, base_dir, config, design_manager, on_config_change, cpu_excel, controller):
         self.parent = parent
         self.base_dir = base_dir
         self.config = config
         self.design_manager = design_manager
         self.on_config_change = on_config_change
         self.cpu_excel = cpu_excel
+        self.controller = controller
         
         # Crear la consola como atributo de instancia para acceso posterior
         self.console = None

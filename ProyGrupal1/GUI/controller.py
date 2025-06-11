@@ -21,6 +21,9 @@ class ViewController:
         self.current_view = None
         self.current_view_name = None
         
+        # Archivo de memoria de instrucciones
+        self.instruction_mem_file = None
+        
         # Mapeo de nombres a módulos y clases (sin tildes en las clases)
         self.view_mapping = {
             "Presentación": {
@@ -97,7 +100,8 @@ class ViewController:
                 self.config,
                 self.design_manager,
                 self.on_config_change,
-                self.cpu_excel
+                self.cpu_excel,
+                self
             )
             
             # Agregar métodos de control a la vista
@@ -149,6 +153,10 @@ class ViewController:
         """Retorna la vista actual"""
         return self.current_view
     
+    def get_view(self, view_name):
+        """Retorna una vista específica del cache"""
+        return self.loaded_views.get(view_name)
+    
     def clear_cache(self):
         """Limpia el cache de vistas (útil para desarrollo)"""
         for view in self.loaded_views.values():
@@ -157,3 +165,11 @@ class ViewController:
         self.loaded_views.clear()
         self.current_view = None
         # No limpiar current_view_name aquí para poder recargar
+    
+    def set_instruction_mem_file(self, file_path):
+        """Establece el archivo de memoria de instrucciones"""
+        self.instruction_mem_file = file_path
+    
+    def get_instruction_mem_file(self):
+        """Obtiene el archivo de memoria de instrucciones actual"""
+        return self.instruction_mem_file
