@@ -458,14 +458,7 @@ class CompiladorView:
             with open(target_path, 'wb') as f:
                 f.write(binary_content)
             
-            # 4. Guardar referencia en el controller (si está disponible)
-            # Esto requiere que el controller sea pasado a la vista
-            # Por ahora solo imprimimos
-            print(f"[INFO] Memoria de instrucciones actualizada desde: {os.path.basename(file_path)}")
-            print(f"[INFO] Tamaño: {len(binary_content)} bytes")
-            print(f"[INFO] Copiado a: {target_path}")
-            
-            # 5. Intentar actualizar la vista de Presentación si está disponible
+            # 4. Intentar actualizar la vista de Presentación si está disponible
             # Esto requiere acceso al controller y a las otras vistas
             # Por ahora solo mostramos un mensaje de éxito
             messagebox.showinfo(
