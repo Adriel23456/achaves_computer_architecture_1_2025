@@ -53,10 +53,10 @@ def main():
     cpu_excel = CPUInfoExcel()
     #cpu_excel.reset(False) #Resetea la información de CPU al inicio
     
-    #cpu_excel.write_k0_0("0xDEADBEEA")
-    #cpu_excel.write_k0_1("0xDEADBEEB")
-    #cpu_excel.write_k0_2("0xDEADBEEC")
-    #cpu_excel.write_k0_3("0xDEADBEED")
+    #cpu_excel.write_k0_0("0xDEADBEEF")
+    #cpu_excel.write_k0_1("0xDEADBEEF")
+    #cpu_excel.write_k0_2("0xDEADBEEF")
+    #cpu_excel.write_k0_3("0xDEADBEEF")
     #cpu_excel.table.execute_all()
     #val1 = cpu_excel.read_k0_0()
     #val2 = cpu_excel.read_k0_1()

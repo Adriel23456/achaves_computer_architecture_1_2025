@@ -1510,7 +1510,7 @@ class CPUInfoExcel:
         self.write_pc_prime("0x00000000")
         self.write_pcf("0x00000000")
         self.write_pcplus8f("0x00001000")
-        self.write_instrf("0x300000000000000")
+        self.write_instrf("0x3000000000000000")
         
         # Señales del Fetch
         # Write string (etiquetas)
@@ -1552,7 +1552,7 @@ class CPUInfoExcel:
         self.table.write(36, 4, "Rd_SpecialD")
         self.table.write(37, 4, "SrcBD")
         # Write numérico (valores iniciales) utilizando las funciones del Decode
-        self.write_instrd("0x300000000000000")
+        self.write_instrd("0x3000000000000000")
         self.write_pcf_d("0x00000000")
         self.write_55_52("0b0000")
         self.write_63_56("0b00110000")
