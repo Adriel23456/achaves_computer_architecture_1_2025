@@ -1,3 +1,4 @@
+# parser.py
 instruction_patterns = {
     # Instrucciones de operación
     'ADD': ['OPCODE', 'REG', 'COMMA', 'REG', 'COMMA', 'REG'],
@@ -71,15 +72,12 @@ instruction_patterns = {
     'STRB': ['OPCODE', 'REG', 'COMMA', 'MEM'],
 
     # Instrucciones de clave
-    'PRINTI': ['OPCODE', 'MEM',],
+    'PRINTI': ['OPCODE', 'MEM'],
     'PRINTS': ['OPCODE', 'MEM'],
     'PRINTB': ['OPCODE', 'MEM'],
     'LOGOUT': ['OPCODE'],
-    'STRK': ['OPCODE', 'KWORD', 'COMMA', 'IMM'],
-    'STRPASS': ['OPCODE', 'PASS', 'COMMA', 'IMM'],
-
-
-
+    'STRK': ['OPCODE', 'KWORD', 'IMM'],
+    'STRPASS': ['OPCODE', 'PASS', 'IMM']
 }
 
 def parse_tokens(tokens):

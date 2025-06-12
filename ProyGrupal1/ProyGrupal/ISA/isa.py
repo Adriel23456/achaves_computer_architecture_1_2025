@@ -1,114 +1,89 @@
-# isa.py
-
 OPCODES = {
-
-    # Operaciones aritméticas y lógicas
+    # Aritméticas
     'ADD':      '00000000',
-    'ADDS':     '00000001', #Por implementar
-    'SUB':      '00000010', #Por implementar
-    'ADC':      '00000011', #Por implementar
-    'SBC':      '00000011', #Por implementar
-    'MUL':      '00000101', #Por implementar
-    'DIV':      '00000101', #Por implementar
-    'AND':      '00000111', #Por implementar
-    'ORR':      '00000111', #Por implementar
-    'EOR':      '00000111', #Por implementar
-    'BIC':      '00000111', #Por implementar
-    'LSL':      '00001011', #Por implementar
-    'LSR':      '00001100', #Por implementar
-    'ASR':      '00001101', #Por implementar
-    'ROR':      '00001110', #Por implementar
+    'ADDS':     '00000001',
+    'SUB':      '00000010',
+    'ADC':      '00000011',
+    'SBC':      '00000100',
+    'MUL':      '00000101',
+    'DIV':      '00000110',
+    'AND':      '00000111',
+    'ORR':      '00001000',
+    'EOR':      '00001001',
+    'BIC':      '00001010',
+    'LSL':      '00001011',
+    'LSR':      '00001100',
+    'ASR':      '00001101',
+    'ROR':      '00001110',
 
     # Inmediatos
     'ADDI':     '00001111',
-    'SUBI':     '00010000', #Por implementar
-    'ADCI':     '00010001', #Por implementar
-    'SBCI':     '00010010', #Por implementar
-    'MULI':     '00010011', #Por implementar
-    'DIVI':     '00010100', #Por implementar
-    'ANDI':     '00010101', #Por implementar
-    'ORRI':     '00010110', #Por implementar
-    'EORI':     '00010111', #Por implementar
-    'BICI':     '00011000', #Por implementar
-    'LSLI':     '00011001', #Por implementar
-    'LSRI':     '00011010', #Por implementar
-    'ASRI':     '00011011', #Por implementar
-    'RORI':     '00011100', #Por implementar
+    'SUBI':     '00010000',
+    'ADCI':     '00010001',
+    'SBCI':     '00010010',
+    'MULI':     '00010011',
+    'DIVI':     '00010100',
+    'ANDI':     '00010101',
+    'ORRI':     '00010110',
+    'EORI':     '00010111',
+    'BICI':     '00011000',
+    'LSLI':     '00011001',
+    'LSRI':     '00011010',
+    'ASRI':     '00011011',
+    'RORI':     '00011100',
 
-
-    # Movimiento de datos 
-    'MOV':      '00011101', #Por implementar
-    'MVN':      '00011110', #Por implementar
-
-    # Movimiento inmediato (con valor)
+    # Movimiento
+    'MOV':      '00011101',
+    'MVN':      '00011110',
     'MOVI':     '00011111',
-    'MVNI':     '00100000', #Por implementar
+    'MVNI':     '00100000',
 
+    # Comparación
+    'CMP':      '00100001',
+    'CMPS':     '00100010',
+    'CMN':      '00100011',
+    'TST':      '00100100',
+    'TEQ':      '00100101',
+    'CMPI':     '00100110',
+    'CMNI':     '00100111',
+    'TSTI':     '00101000',
+    'TEQI':     '00101001',
 
-    # Comparaciones
-    'CMP':  '00100001',
-    'CMPS': '00100010', #Por implementar
-    'CMN':  '00100011', #Por implementar
-    'TST':  '00100100', #Por implementar
-    'TEQ':  '00100101', #Por implementar
+    # Saltos
+    'B':        '00101010',
+    'BEQ':      '00101011',
+    'BNE':      '00101100',
+    'BLT':      '00101101',
+    'BGT':      '00101110',
 
-    # Comparaciones inmediatas
-    'CMPI': '00100110',
-    'CMNI': '00100111', #Por implementar
-    'TSTI': '00101000', #Por implementar
-    'TEQI': '00101001', #Por implementar  
-
-    #Operaciones de bifurcación
-    'B':    '00101010',
-    'BEQ':  '00101011',  
-    'BNE':  '00101100',  
-    'BLT':  '00101101',  
-    'BGT':  '00101110', 
-
-    #Operaciones especiales
-    'SWI':  '00101111', #Por implementar
-    'NOP':  '00110000',
+    # Especiales
+    'SWI':      '00101111',
+    'NOP':      '00110000',
 
     # Memoria
-    'LDR':      '00110001', 
+    'LDR':      '00110001',
     'STR':      '00110010',
-    'LDRB':     '00110011', #Por implementar
-    'STRB':     '00110100', #Por implementar
+    'LDRB':     '00110011',
+    'STRB':     '00110100',
 
-    # Prints
+    # I/O
     'PRINTI':   '00110101',
-    'PRINTS':   '00110110', #Por implementar
-    'PRINTB':   '00110111', #Por implementar
+    'PRINTS':   '00110110',
+    'PRINTB':   '00110111',
+    'PRINTL':   '00111000',
+    'PRINTR':   '00111001',
 
-    'LOGOUT':   '00111000',
+    # Control de usuario
+    'LOGOUT':   '00111010',
+    'LOGIN':    '00111011',
+    'CLEAR':    '00111100',
 
-    'STRK':     '00111001', #Revisar (no coincide con idea)
-    'STRPASS':  '00111010',
-
-    # Claves criptográficas
-
-    #POR IMPLEMENTAR
-    #'AUTHCMP'
-    #'TEA'
-    #'TEAENC #1' 
-    #'TEAENC #2'
-    #'TEAENC #3'
-    #'TEAENC #4'
-    #'TEAENC #5'
-    #'TEAENC #6'
-    #'TEAENC #7'
-
-    #'TEAD_1'
-    #'TEAD_2'
-    #'TEAD_3'
-    #'TEAD_4'
-    #'TEAD_5'
-    #'TEAD_6'
-    #'TEAD_7'
-
-    
-
+    # Seguridad
+    'AUTHCMP':  '00111101',
+    'STRPASS':  '00111110',
+    'STRK':     '00111111',
 }
+
 
 # Función para codificar un registro Rn o wn
 def encode_register(regname):
