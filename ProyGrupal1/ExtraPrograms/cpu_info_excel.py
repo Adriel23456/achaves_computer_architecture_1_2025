@@ -1385,6 +1385,55 @@ class CPUInfoExcel:
             
         except Exception as e:
             print(f"✗ Error escribiendo memoria dinámica: {e}")
+            
+    
+    # ===== MEMORIA DE INSTRUCCIONES =====
+    def read_instruccion_memory(self, address):
+        """
+        Lee un bloque de 64 bits de la memoria de instrucciones.
+        
+        Args:
+            address: Dirección en formato binario, decimal o hexadecimal
+            
+        Returns:
+            str: Valor leído en el mismo formato que la dirección
+        """
+        try:
+            # Detectar formato de entrada
+            addr_str = str(address).strip()
+            format_type = self._detect_format(addr_str)
+            if format_type == 'decimal' and not addr_str.startswith('0d'):
+                addr_str = '0d' + addr_str
+            
+            # Convertir dirección a decimal
+            addr_decimal = self._parse_address(address)
+            
+            # Construir ruta al archivo
+            current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+            parent_dir = current_dir.parent
+            bin_file = parent_dir / "Assets" / "instruction_mem.bin"
+            
+            # Si no existe el archivo, retornar 0
+            if not bin_file.exists():
+                return self._format_output(0, format_type, 64)
+            
+            # Leer del archivo
+            with open(bin_file, 'rb') as f:
+                f.seek(addr_decimal)
+                data = f.read(8)
+                
+                if len(data) < 8:
+                    # No hay suficientes datos
+                    return self._format_output(0, format_type, 64)
+                
+                # Convertir bytes a entero CON SIGNO (complemento a 2)
+                value = int.from_bytes(data, byteorder='little', signed=True)
+                
+            return self._format_output(value, format_type, 64)
+            
+        except Exception as e:
+            print(f"✗ Error leyendo memoria dinámica: {e}")
+            return self._format_output(0, format_type if 'format_type' in locals() else 'hex', 64)
         
     #=================================================================================
     # Valor de la instruccion actual por estado

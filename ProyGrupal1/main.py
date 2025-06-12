@@ -78,6 +78,10 @@ def main():
     #print("Valor es:")
     #print(value)
     
+    #value = cpu_excel.read_instruccion_memory("0x0")
+    #print("Valor es:")
+    #print(value)
+    
     """Función principal de la aplicación"""
     # Asegurar que la configuración existe
     config_path = ensure_config_exists()

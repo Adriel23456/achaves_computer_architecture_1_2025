@@ -177,6 +177,15 @@ class CompiladorView:
             design_manager=self.design_manager
         )
         btn_select_memory.pack(side=tk.LEFT, padx=5)
+        
+        # Botón Reiniciar todas las memorias
+        btn_select_memory = StyledButton(
+            buttons_container,
+            text="Reiniciar todas las memorias",
+            command=self._on_reset_memory,
+            design_manager=self.design_manager
+        )
+        btn_select_memory.pack(side=tk.LEFT, padx=5)
     
     def _get_initial_directory(self):
         """Obtiene el directorio inicial para los diálogos de archivo de manera robusta"""
@@ -348,36 +357,6 @@ class CompiladorView:
                 fg=self.FILE_STATE_COLORS['unsaved']
             )
     
-    def _on_compile(self):
-        """Maneja el evento de compilar con las restricciones necesarias"""
-        self.controller.print_console(f"\n[INFO] Iniciando proceso de compilación...")
-        
-        # Caso 1: Nunca se ha guardado
-        if not self.current_file:
-            self.controller.print_console(f"[WARN] El archivo debe guardarse antes de compilar")
-            self.controller.print_console(f"[INFO] Abriendo diálogo de guardado...")
-            self._save_as()
-            
-            # Si después de intentar guardar aún no hay archivo, cancelar
-            if not self.current_file:
-                self.controller.print_console(f"[ERROR] Compilación cancelada - No se guardó el archivo")
-                return
-        
-        # Caso 2: Archivo guardado pero modificado
-        elif self.is_modified:
-            self.controller.print_console(f"[INFO] Detectados cambios en {os.path.basename(self.current_file)}")
-            self.controller.print_console(f"[INFO] Aplicando autoguardado...")
-            self._save_to_file(self.current_file)
-        
-        # Caso 3: Archivo guardado sin cambios
-        else:
-            self.controller.print_console(f"[INFO] Archivo listo: {os.path.basename(self.current_file)}")
-        
-        # Proceder con la compilación
-        print("[INFO] Compilando código...")
-        print(f"[INFO] Archivo fuente: {self.current_file}")
-        print(f"[INFO] Contenido actual del archivo por compilar: \n {self.ide.get()}")
-    
     def _on_grammar(self):
         """Muestra la gramática desde el archivo Assets/SecureCPU.g4"""
         try:
@@ -475,3 +454,46 @@ class CompiladorView:
         
         # Mantener los colores de estado del archivo
         self._update_file_status()
+    
+    def _on_reset_memory(self):
+        """Reseter todos los valores de nuestra memorias del CPU (General y Seguras)"""
+        self.controller.print_console(f"[INFO] Iniciando proceso de reinicio total")
+        self.cpu_excel.reset(True)
+        self.controller.print_console(f"[INFO] Reset total completo")
+    
+    def _on_compile(self):
+        """Maneja el evento de compilar con las restricciones necesarias"""
+        self.controller.print_console(f"\n[INFO] Iniciando proceso de compilación...")
+        self.cpu_excel.reset(False)
+        self.controller.print_console(f"[WARN] El archivo debe guardarse antes de compilar")
+        
+        # Caso 1: Nunca se ha guardado
+        if not self.current_file:
+            self.controller.print_console(f"[WARN] El archivo debe guardarse antes de compilar")
+            self.controller.print_console(f"[INFO] Abriendo diálogo de guardado...")
+            self._save_as()
+            
+            # Si después de intentar guardar aún no hay archivo, cancelar
+            if not self.current_file:
+                self.controller.print_console(f"[ERROR] Compilación cancelada - No se guardó el archivo")
+                return
+        
+        # Caso 2: Archivo guardado pero modificado
+        elif self.is_modified:
+            self.controller.print_console(f"[INFO] Detectados cambios en {os.path.basename(self.current_file)}")
+            self.controller.print_console(f"[INFO] Aplicando autoguardado...")
+            self._save_to_file(self.current_file)
+        
+        # Caso 3: Archivo guardado sin cambios
+        else:
+            self.controller.print_console(f"[INFO] Archivo listo: {os.path.basename(self.current_file)}")
+        
+        # Proceder con la compilación
+        print("[INFO] Compilando código...")
+        print(f"[INFO] Archivo fuente: {self.current_file}")
+        print(f"[INFO] Contenido actual del archivo por compilar: \n {self.ide.get()}")
+        
+        # Finalizar la compilación
+        print("[INFO] Finalizando la compilacion del código")
+        self.cpu_excel.reset(False)
+        print("[INFO] Memoria reiniciada")
