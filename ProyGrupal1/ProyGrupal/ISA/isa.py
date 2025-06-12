@@ -110,43 +110,57 @@ def encode_register(regname):
 
 def encode_special_field(tokens, op):
     """Determina el campo Special basado en los operandos"""
-    special_bits = ['0', '0', '0', '0']  # [bit55, bit54, bit53, bit52]
-    
-    # Bit 54: Tipo de registro destino (Rd)
-    if len(tokens) >= 2:  # Hay operando destino
+    if op == 'ADDS':
+        return '0000'
+
+    if op in ['ADD', 'SUB', 'ADC', 'SBC', 'MUL', 'DIV', 'AND', 'ORR', 'EOR', 'BIC', 'LSL', 'LSR', 'ASR', 'ROR']:
+        return '0100'
+
+    if op in ['ADDI', 'SUBI', 'ADCI', 'SBCI', 'MULI', 'DIVI', 'ANDI', 'ORRI', 'EORI', 'BICI', 'LSLI', 'LSRI', 'ASRI', 'RORI']:
+        return '0100'
+
+    if op in ['MOV', 'MVN', 'MOVI', 'MVNI', 'CMPS', 'B', 'BEQ', 'BNE', 'BLT', 'BGT', 'SWI', 'NOP', 'LOGOUT', 'STRPASS', 'STRK']:
+        return '0000'
+
+    if op in ['CMP', 'CMN', 'TST', 'TEQ', 'CMPI', 'CMNI', 'TSTI', 'TEQI']:
+        return '0100'
+
+    if op in ['LDR', 'STR', 'LDRB', 'STRB']:
+        # General Memory (G/V): 01X0, Dinamic Memory (D/P): 01X1
+        mem = tokens[3][1] if len(tokens) > 3 else ''
+        mem_type = mem[0] if mem else 'G'
+        mem_bit = '1' if mem_type in ['D', 'P'] else '0'
+        return '01' + '0' + mem_bit
+
+    if op in ['PRINTI', 'PRINTS', 'PRINTB']:
+        # General Memory: X1X0, Dinamic Memory: X1X1
+        mem = tokens[1][1] if len(tokens) > 1 else ''
+        mem_type = mem[0] if mem else 'G'
+        mem_bit = '1' if mem_type in ['D', 'P'] else '0'
+        return '010' + mem_bit
+
+    # Fallback genérico basado en análisis de operandos
+    special_bits = ['0', '0', '0', '0']
+
+    if len(tokens) >= 2:
         operand = tokens[1][1]
-        if operand.startswith('P'):  # Registro de contraseña
+        if operand.startswith(('P', 'w', 'k')):
             special_bits[1] = '1'
-        elif operand.startswith('w'):  # Registro w
-            special_bits[1] = '1'
-        elif operand.startswith('k'):  # Palabra clave
-            special_bits[1] = '1'
-    
-    # Bit 53: Tipo de registro operando A (Rn)
-    if len(tokens) >= 4:  # Hay segundo operando
+
+    if len(tokens) >= 4:
         operand = tokens[3][1]
-        if operand.startswith('P'):  # Registro de contraseña
+        if operand.startswith(('P', 'w')) or operand.startswith(('D[', 'G[', 'V[', 'P[')):
             special_bits[2] = '1'
-        elif operand.startswith('w'):  # Registro w
-            special_bits[2] = '1'
-        elif operand.startswith('D['):  # Memoria D
-            special_bits[2] = '1'
-        elif operand.startswith('G['):  # Memoria G
-            special_bits[2] = '1'
-        elif operand.startswith('V['):  # Memoria V
-            special_bits[2] = '1'
-        elif operand.startswith('P['):  # Memoria P
-            special_bits[2] = '1'
-    
-    # Bit 52: Tipo de memoria (0=G/V, 1=D/P)
+
     for i in range(1, len(tokens)):
         if len(tokens[i]) > 1:
             operand = tokens[i][1]
-            if operand.startswith('D[') or operand.startswith('P['):
+            if operand.startswith(('D[', 'P[')):
                 special_bits[3] = '1'
                 break
-            elif operand.startswith('G[') or operand.startswith('V['):
+            elif operand.startswith(('G[', 'V[')):
                 special_bits[3] = '0'
                 break
-    
+
     return ''.join(special_bits)
+

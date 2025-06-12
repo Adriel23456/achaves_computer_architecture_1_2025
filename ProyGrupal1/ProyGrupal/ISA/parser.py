@@ -83,8 +83,11 @@ instruction_patterns = {
 
     'TEA': ['OPCODE', 'IMM', 'COMMA', 'IMM'],
     
-    'TEAENC': ['OPCODE', 'IMM'],
-    'TEAENC': ['OPCODE', 'IMM', 'COMMA', 'KWORD']
+    'TEAENC': [
+    ['OPCODE', 'IMM'],                     # TEAENC #2
+    ['OPCODE', 'IMM', 'COMMA', 'KWORD']    # TEAENC #1, k1
+],
+
 
 }
 
@@ -99,6 +102,15 @@ def parse_tokens(tokens):
         return False, f"Instrucción no reconocida: {op}"
 
     actual_types = [tok[0] for tok in tokens]
+
+    # Si hay múltiples formas válidas (lista de listas)
+    if isinstance(expected[0], list):
+        for variant in expected:
+            if actual_types == variant:
+                return True, None
+        return False, f"Sintaxis inválida para {op}. Esperado uno de: {expected}, obtenido: {actual_types}"
+
+    # Forma única esperada
     if actual_types != expected:
         return False, f"Sintaxis inválida para {op}. Esperado: {expected}, obtenido: {actual_types}"
 

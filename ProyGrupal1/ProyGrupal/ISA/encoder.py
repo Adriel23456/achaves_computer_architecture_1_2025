@@ -12,20 +12,21 @@ def encode_instruction(tokens):
         Rd = encode_register(tokens[1][1])
         Rn = encode_register(tokens[3][1])
         Rm = encode_register(tokens[5][1])
-        rest = '0' * (64 - 8 - 4 - 4 - 4 - 4)  # 8b opcode + 4b special + 3 regs (4b c/u)
+        rest = '0' * (64 - 8 - 4 - 4 - 4 - 4)
         return opcode + special + Rd + Rn + Rm + rest
 
     # =========================================
-    # Inmediatos: tipo REG, REG, IMM
+    # Inmediatos: tipo REG, REG, IMM (con Rm=0000)
     elif op in ['ADDI', 'SUBI', 'ADCI', 'SBCI', 'MULI', 'DIVI', 'ANDI', 'ORRI', 'EORI', 'BICI', 'LSLI', 'LSRI', 'ASRI', 'RORI']:
         opcode = OPCODES[op]
         special = encode_special_field(tokens, op)
         Rd = encode_register(tokens[1][1])
         Rn = encode_register(tokens[3][1])
+        Rm = '0000'  # Rm nulo
         imm = int(tokens[5][1].replace('#', ''), 0)
         bin_imm = format(imm & 0xFFFFFFFF, '032b')
-        rest = '0' * (64 - 8 - 4 - 4 - 4 - 32)
-        return opcode + special + Rd + Rn + bin_imm + rest
+        rest = '0' * 8
+        return opcode + special + Rd + Rn + Rm + bin_imm + rest
 
     # =========================================
     # MOV / MVN
@@ -33,48 +34,54 @@ def encode_instruction(tokens):
         opcode = OPCODES[op]
         special = encode_special_field(tokens, op)
         Rd = encode_register(tokens[1][1])
-        Rn = encode_register(tokens[3][1])
-        rest = '0' * (64 - 8 - 4 - 4 - 4)
+        Rn = '0000'  # Rn nulo
+        Rm = encode_register(tokens[5][1])
+        rest = '0' * (64 - 8 - 4 - 4 - 4 - 4)
         return opcode + special + Rd + Rn + rest
 
     elif op in ['MOVI', 'MVNI']:
         opcode = OPCODES[op]
         special = encode_special_field(tokens, op)
         Rd = encode_register(tokens[1][1])
+        Rn = '0000'  # Rn nulo
+        Rm = '0000'
         imm = int(tokens[3][1].replace('#', ''), 0)
         bin_imm = format(imm & 0xFFFFFFFF, '032b')
-        rest = '0' * (64 - 8 - 4 - 4 - 32)
-        return opcode + special + Rd + bin_imm + rest
+        rest = '0' * 8
+        return opcode + special + Rd + Rn + Rm + bin_imm + rest
 
     # =========================================
     # Comparaciones
     elif op in ['CMP', 'CMN', 'TST', 'TEQ']:
         opcode = OPCODES[op]
         special = encode_special_field(tokens, op)
+        Rd = '0000'  # Rd nulo
         Rn = encode_register(tokens[1][1])
         Rm = encode_register(tokens[3][1])
-        rest = '0' * (64 - 8 - 4 - 4 - 4)
-        return opcode + special + Rn + Rm + rest
+        rest = '0' * (64 - 8 - 4 - 4 - 4 - 4)
+        return opcode + special + Rd + Rn + Rm + rest
 
     elif op in ['CMPI', 'CMNI', 'TSTI', 'TEQI']:
         opcode = OPCODES[op]
         special = encode_special_field(tokens, op)
+        Rd = '0000'  # Rd nulo
         Rn = encode_register(tokens[1][1])
+        Rm = '0000'
         imm = int(tokens[3][1].replace('#', ''), 0)
         bin_imm = format(imm & 0xFFFFFFFF, '032b')
-        rest = '0' * (64 - 8 - 4 - 4 - 32)
-        return opcode + special + Rn + bin_imm + rest
+        rest = '0' * 8
+        return opcode + special + Rd +Rn + Rm + bin_imm + rest
 
     # =========================================
     # Comparación con contraseña (CMPS)
     elif op == 'CMPS':
-        opcode = OPCODES[op]  # '00100010' (8 bits)
-        special = '0000'      # 4 bits - No importa
-        rd = '0000'           # 4 bits - No importa  
-        rn = encode_register(tokens[1][1])  # 4 bits - Registro a comparar
-        pass_reg = encode_register(tokens[3][1])  # 4 bits - Registro de contraseña
-        imm = '0' * 32        # 32 bits - No importa
-        extra = '0' * 8       # 8 bits - No relevante
+        opcode = OPCODES[op]
+        special = '0000'
+        rd = '0000'
+        rn = encode_register(tokens[1][1])
+        pass_reg = encode_register(tokens[3][1])
+        imm = '0' * 32
+        extra = '0' * 8
         return opcode + special + rd + rn + pass_reg + imm + extra
 
     # =========================================
@@ -82,8 +89,8 @@ def encode_instruction(tokens):
     elif op in ['B', 'BEQ', 'BNE', 'BLT', 'BGT']:
         opcode = OPCODES[op]
         special = encode_special_field(tokens, op)
-        offset = 0  # TODO: calcular offset relativo a etiquetas
-        bin_offset = format(offset, '052b')  # Ajustado para special
+        offset = 0
+        bin_offset = format(offset, '052b')
         return opcode + special + bin_offset
 
     # =========================================
@@ -93,16 +100,6 @@ def encode_instruction(tokens):
         special = encode_special_field(tokens, op)
         rest = '0' * (64 - 8 - 4)
         return opcode + special + rest
-
-    elif op == 'LOGIN':
-        opcode = OPCODES[op]
-        special = encode_special_field(tokens, op)
-        Rn = encode_register(tokens[1][1])
-        Rm = encode_register(tokens[3][1])
-        clave = int(tokens[5][1].replace('#', ''), 0)
-        bin_clave = format(clave & 0xFFFFFFFF, '032b')
-        rest = '0' * (64 - 8 - 4 - 4 - 4 - 32)
-        return opcode + special + Rn + Rm + bin_clave + rest
 
     # =========================================
     # Memoria
@@ -139,44 +136,46 @@ def encode_instruction(tokens):
         rest = '0' * (64 - 8 - 4 - 2 - 4 - 32)
         return opcode + special + mem_type_bin + Rn + bin_offset + rest
 
-    elif op == 'PRINTL':
-        opcode = OPCODES[op]
-        special = encode_special_field(tokens, op)
-        val = int(tokens[1][1].replace('#', ''), 0)
-        bin_val = format(val, '052b')  # Ajustado para special
-        return opcode + special + bin_val
-
-    elif op == 'PRINTR':
-        opcode = OPCODES[op]
-        special = encode_special_field(tokens, op)
-        Rn = encode_register(tokens[1][1])
-        rest = '0' * (64 - 8 - 4 - 4)
-        return opcode + special + Rn + rest
-
     # =========================================
     # Seguridad / cifrado
-    elif op in ['STRK']:
+    elif op == 'STRK':
         opcode = OPCODES[op]
         special = encode_special_field(tokens, op)
-        kword = tokens[1][1]  # k0.0
+
+        rd = '0000'  # No importa
+        rn = '0000'  # No importa
+
+        kword = tokens[1][1]  # Ej: 'k1.0'
         clave, word = map(int, kword[1:].split('.'))
-        bin_clave = format(clave, '02b')
-        bin_word = format(word, '02b')
-        val = int(tokens[3][1].replace('#', ''), 0)  # Ajustado índice
-        bin_val = format(val & 0xFFFFFFFF, '032b')
-        rest = '0' * (64 - 8 - 4 - 2 - 2 - 32)
-        return opcode + special + bin_clave + bin_word + bin_val + rest
+        bin_clave = format(clave, '02b')  # 2 bits
+        bin_word = format(word, '02b')    # 2 bits
+
+        imm = int(tokens[2][1].replace('#', ''), 0)  # Inmediato
+        bin_imm = format(imm & 0xFFFFFFFF, '032b')
+        extra = '0' * 8
+
+        return opcode + special + rd + rn + bin_clave + bin_word + bin_imm + extra
+
+
 
     elif op == 'STRPASS':
         opcode = OPCODES[op]
         special = encode_special_field(tokens, op)
-        pass_token = tokens[1][1]  # P3
-        pass_index = int(pass_token[1:])  # 3
-        bin_pass = format(pass_index, '04b')  # 4 bits para el índice
-        val = int(tokens[3][1].replace('#', ''), 0)  # Valor inmediato
-        bin_val = format(val & 0xFFFFFFFF, '032b')
-        rest = '0' * (64 - 8 - 4 - 4 - 32)
-        return opcode + special + bin_pass + bin_val + rest
+
+        rd = '0000'  # No importa
+        rn = '0000'  # No importa
+
+        pass_token = tokens[1][1]  # Ej: 'P1'
+        pass_index = int(pass_token[1:])  # => 1
+        bin_pass = format(pass_index, '04b')
+
+        imm = int(tokens[2][1].replace('#', ''), 0)  # Inmediato
+        bin_imm = format(imm & 0xFFFFFFFF, '032b')
+        extra = '0' * 8
+
+        return opcode + special + rd + rn + bin_pass + bin_imm + extra
+
+
     
     # =========================================
     # Pseudoinstrucción AUTHCMP (expande a 8 CMPS)
@@ -225,6 +224,40 @@ def encode_instruction(tokens):
             binaries.append(encode_instruction([('OPCODE', 'NOP')]))
         binaries.append(encode_instruction([('OPCODE', 'EOR'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W9')]))
         return binaries
+    
+    # Pseudoinstrucción TEAENC #3
+    elif op == 'TEAENC' and tokens[1][1] == '#3':
+        binaries = []
+        kword = tokens[3][1] if len(tokens) > 3 else 'k0'  # Por defecto k0
+        binaries.append(encode_instruction([('OPCODE', 'LSRI'), ('REG', 'W9'), ('COMMA', ','), ('REG', 'W5'), ('COMMA', ','), ('IMM', '#5')]))
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+        binaries.append(encode_instruction([('OPCODE', 'ADDS'), ('REG', 'W9'), ('COMMA', ','), ('REG', 'W9'), ('COMMA', ','), ('KWORD', f'{kword}.1')]))
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+        binaries.append(encode_instruction([('OPCODE', 'EOR'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W9')]))
+        return binaries
+    
+    # =========================================
+    # Pseudoinstrucción TEAENC #4
+    elif op == 'TEAENC' and tokens[1][1] == '#4':
+        binaries = []
+        kword = tokens[3][1] if len(tokens) > 3 else 'k0'
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+        binaries.append(encode_instruction([('OPCODE', 'ADD'), ('REG', 'W4'), ('COMMA', ','), ('REG', 'W4'), ('COMMA', ','), ('REG', 'W8')]))
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+        binaries.append(encode_instruction([('OPCODE', 'LSLI'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W4'), ('COMMA', ','), ('IMM', '#4')]))
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+        binaries.append(encode_instruction([('OPCODE', 'ADDS'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W8'), ('COMMA', ','), ('KWORD', f'{kword}.2')]))
+        return binaries
+
+
+    
 
     else:
         raise ValueError(f"No se puede codificar instrucción: {op}")
+    
+    
