@@ -6,7 +6,7 @@ from pathlib import Path
 current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, str(current_dir))
 
-from table_control import DataType, TableControl
+from ExtraPrograms.table_control import DataType, TableControl
 
 class CPUInfoExcel:
     """Clase para manejar la lectura y escritura de señales del CPU en Excel"""
@@ -455,6 +455,31 @@ class CPUInfoExcel:
     
     def read_pcsrc_and_e(self):
         return self.table.read_immediate(27, 8)
+    
+    # Valores del timer e intentos (pertenecer a Execute)
+    def write_timer_safe(self, value):
+        self.table.write(42, 16, value)
+    
+    def read_timer_safe(self):
+        return self.table.read_immediate(42, 16)
+    
+    def write_block_statusIn(self, value):
+        self.table.write(43, 16, value)
+    
+    def read_block_statusIn(self):
+        return self.table.read_immediate(43, 16)
+    
+    def write_block_statusOut(self, value):
+        self.table.write(44, 16, value)
+    
+    def read_block_statusOut(self):
+        return self.table.read_immediate(44, 16)
+    
+    def write_attempts_available(self, value):
+        self.table.write(42, 19, value)
+    
+    def read_attempts_available(self):
+        return self.table.read_immediate(42, 19)
     
     #=================================================================================
     # Señales del Memory
@@ -1121,27 +1146,27 @@ class CPUInfoExcel:
         max_addr   = 64 * 4                           # 256 bytes (= 64 bloques × 4)
 
         try:
-            # ─── 1. Validación de formatos ──────────────────────────────────────────
+            # ─── 1. Validación de formatos
             addr_fmt  = self._detect_format(str(address).strip())
             value_fmt = self._detect_format(str(value).strip())
             if addr_fmt != value_fmt:
                 raise ValueError(f"Address y value deben tener el mismo formato "
                                 f"(Address: {addr_fmt}, Value: {value_fmt})")
 
-            # ─── 2. Parseo a enteros sin signo de 32 bits ───────────────────────────
+            # ─── 2. Parseo a enteros sin signo de 32 bits
             addr_dec  = self._parse_address(address)
             val_u32   = self._parse_value(value, size_bits) & 0xFFFFFFFF
 
-            # ─── 3. Límite de la memoria ───────────────────────────────────────────
+            # ─── 3. Límite de la memoria
             if addr_dec < 0 or addr_dec + size_bytes > max_addr:
                 return                                        # fuera de rango
 
-            # ─── 4. Cálculo de bloques y offsets ───────────────────────────────────
+            # ─── 4. Cálculo de bloques y offsets
             start_blk   = addr_dec // 4
             start_off   = addr_dec % 4
             end_blk     = (addr_dec + 3) // 4                # siempre 4 bytes -> máx 2 bloques
 
-            # ─── 5. Escritura ──────────────────────────────────────────────────────
+            # ─── 5. Escritura
             if start_blk == end_blk:
                 # —— Todo cae en un solo bloque ——
                 cur   = self.read_memory_block(start_blk) & 0xFFFFFFFF
@@ -1170,7 +1195,7 @@ class CPUInfoExcel:
                 new1     = (cur1 & ~mask1) | (val_u32 & mask1)
                 self.write_memory_block(end_blk, new1 & 0xFFFFFFFF, value_fmt)
 
-            # ─── 6. Guardar inmediatamente en el Excel ─────────────────────────────
+            # ─── 6. Guardar inmediatamente en el Excel
             self.table.execute_all()
 
         except Exception as e:
@@ -1277,8 +1302,10 @@ class CPUInfoExcel:
     def write_g(self, index, value):
         """Compatibilidad con código existente"""
         self.write_memory_block(index, value)
-        
+    
+    #=================================================================================
     # ===== MEMORIA DINÁMICA =====
+    #=================================================================================
     def read_dynamic_memory(self, address):
         """
         Lee un bloque de 32 bits de la memoria dinámica.
@@ -1386,8 +1413,9 @@ class CPUInfoExcel:
         except Exception as e:
             print(f"✗ Error escribiendo memoria dinámica: {e}")
             
-    
+    #=================================================================================
     # ===== MEMORIA DE INSTRUCCIONES =====
+    #=================================================================================
     def read_instruccion_memory(self, address):
         """
         Lee un bloque de 64 bits de la memoria de instrucciones.
@@ -1467,33 +1495,6 @@ class CPUInfoExcel:
     
     def read_state_writeBack(self):
         return self.table.read_immediate(42, 13)
-    
-    #=================================================================================
-    # Valores del timer e intentos
-    #=================================================================================
-    def write_timer_safe(self, value):
-        self.table.write(42, 16, value)
-    
-    def read_timer_safe(self):
-        return self.table.read_immediate(42, 16)
-    
-    def write_block_statusIn(self, value):
-        self.table.write(43, 16, value)
-    
-    def read_block_statusIn(self):
-        return self.table.read_immediate(43, 16)
-    
-    def write_block_statusOut(self, value):
-        self.table.write(44, 16, value)
-    
-    def read_block_statusOut(self):
-        return self.table.read_immediate(44, 16)
-    
-    def write_attempts_available(self, value):
-        self.table.write(42, 19, value)
-    
-    def read_attempts_available(self):
-        return self.table.read_immediate(42, 19)
         
     #=================================================================================
     # Funcion de reset para el inicio del simulador
