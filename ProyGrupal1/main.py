@@ -92,8 +92,14 @@ def main():
                 else:
                     print(f"[Línea {lineno}] ✅ Correcto: {tokens}")
                     binary = encode_instruction(tokens)
-                    print(f"[Línea {lineno}] 🟢 Binario: {binary}")
-                    binarios.append(binary)
+                    
+                    if isinstance(binary, list):
+                        for i, b in enumerate(binary):
+                            print(f"[Línea {lineno}.{i+1}] 🟢 Binario: {b}")
+                            binarios.append(b)
+                    else:
+                        print(f"[Línea {lineno}] 🟢 Binario: {binary}")
+                        binarios.append(binary)
 
             except Exception as e:
                 print(f"[Línea {lineno}] ⚠️ Excepción: {e}")

@@ -77,7 +77,10 @@ instruction_patterns = {
     'PRINTB': ['OPCODE', 'MEM'],
     'LOGOUT': ['OPCODE'],
     'STRK': ['OPCODE', 'KWORD', 'IMM'],
-    'STRPASS': ['OPCODE', 'PASS', 'IMM']
+    'STRPASS': ['OPCODE', 'PASS', 'IMM'],
+
+    'AUTHCMP': ['OPCODE'],
+
 }
 
 def parse_tokens(tokens):

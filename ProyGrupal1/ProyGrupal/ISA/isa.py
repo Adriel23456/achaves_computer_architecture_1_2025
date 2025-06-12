@@ -84,9 +84,65 @@ OPCODES = {
     'STRK':     '00111111',
 }
 
-
 # Función para codificar un registro Rn o wn
+
 def encode_register(regname):
-    reg_type = '1' if regname.startswith('R') else '0'
-    number = int(regname[1:])
-    return reg_type + format(number, '05b')  # 6 bits total
+    """Codifica un registro según la especificación ISA"""
+    if regname.startswith('R'):
+        number = int(regname[1:])
+        return format(number, '04b')  # 4 bits directos
+    elif regname.startswith('w'):
+        # Según la especificación: w1=0001, w2=0010, w3=0011, etc.
+        # Los registros w se mapean directamente a su número
+        number = int(regname[1:])
+        return format(number, '04b')
+    elif regname.startswith('P'):
+        # Registros de contraseña P1, P2, etc.
+        # P5 = 0101 (no restar 1, usar el número directo)
+        number = int(regname[1:])
+        return format(number, '04b')
+    else:
+        raise ValueError(f"Registro desconocido: {regname}")
+
+def encode_special_field(tokens, op):
+    """Determina el campo Special basado en los operandos"""
+    special_bits = ['0', '0', '0', '0']  # [bit55, bit54, bit53, bit52]
+    
+    # Bit 54: Tipo de registro destino (Rd)
+    if len(tokens) >= 2:  # Hay operando destino
+        operand = tokens[1][1]
+        if operand.startswith('P'):  # Registro de contraseña
+            special_bits[1] = '1'
+        elif operand.startswith('w'):  # Registro w
+            special_bits[1] = '1'
+        elif operand.startswith('k'):  # Palabra clave
+            special_bits[1] = '1'
+    
+    # Bit 53: Tipo de registro operando A (Rn)
+    if len(tokens) >= 4:  # Hay segundo operando
+        operand = tokens[3][1]
+        if operand.startswith('P'):  # Registro de contraseña
+            special_bits[2] = '1'
+        elif operand.startswith('w'):  # Registro w
+            special_bits[2] = '1'
+        elif operand.startswith('D['):  # Memoria D
+            special_bits[2] = '1'
+        elif operand.startswith('G['):  # Memoria G
+            special_bits[2] = '1'
+        elif operand.startswith('V['):  # Memoria V
+            special_bits[2] = '1'
+        elif operand.startswith('P['):  # Memoria P
+            special_bits[2] = '1'
+    
+    # Bit 52: Tipo de memoria (0=G/V, 1=D/P)
+    for i in range(1, len(tokens)):
+        if len(tokens[i]) > 1:
+            operand = tokens[i][1]
+            if operand.startswith('D[') or operand.startswith('P['):
+                special_bits[3] = '1'
+                break
+            elif operand.startswith('G[') or operand.startswith('V['):
+                special_bits[3] = '0'
+                break
+    
+    return ''.join(special_bits)
