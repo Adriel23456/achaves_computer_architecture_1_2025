@@ -462,38 +462,42 @@ class CompiladorView:
         self.controller.print_console(f"[INFO] Reset total completo")
     
     def _on_compile(self):
-        """Maneja el evento de compilar con las restricciones necesarias"""
-        self.controller.print_console(f"\n[INFO] Iniciando proceso de compilación...")
-        self.cpu_excel.reset(False)
-        self.controller.print_console(f"[WARN] El archivo debe guardarse antes de compilar")
-        
-        # Caso 1: Nunca se ha guardado
+        """Compila el código asegurando primero que el archivo esté guardado."""
+        self.controller.print_console("\n[INFO] Iniciando proceso de compilación...")
+
+        # -----------------------------------------------------------------
+        # 1) Verificar / forzar guardado
+        # -----------------------------------------------------------------
         if not self.current_file:
-            self.controller.print_console(f"[WARN] El archivo debe guardarse antes de compilar")
-            self.controller.print_console(f"[INFO] Abriendo diálogo de guardado...")
-            self._save_as()
-            
-            # Si después de intentar guardar aún no hay archivo, cancelar
-            if not self.current_file:
-                self.controller.print_console(f"[ERROR] Compilación cancelada - No se guardó el archivo")
+            #   a) Nunca se ha guardado
+            self.controller.print_console("[WARN] El archivo debe guardarse antes de compilar")
+            self.controller.print_console("[INFO] Abriendo diálogo de guardado...")
+            self._save_as()                       # ← esta llamada es sincrónica
+
+            if not self.current_file:             # usuario canceló
+                self.controller.print_console("[ERROR] Compilación cancelada - No se guardó el archivo")
                 return
-        
-        # Caso 2: Archivo guardado pero modificado
+
         elif self.is_modified:
+            #   b) Archivo existente pero con cambios
             self.controller.print_console(f"[INFO] Detectados cambios en {os.path.basename(self.current_file)}")
-            self.controller.print_console(f"[INFO] Aplicando autoguardado...")
+            self.controller.print_console("[INFO] Aplicando autoguardado...")
             self._save_to_file(self.current_file)
-        
-        # Caso 3: Archivo guardado sin cambios
+
         else:
+            #   c) Ya estaba guardado y sin cambios
             self.controller.print_console(f"[INFO] Archivo listo: {os.path.basename(self.current_file)}")
-        
-        # Proceder con la compilación
-        print("[INFO] Compilando código...")
-        print(f"[INFO] Archivo fuente: {self.current_file}")
-        print(f"[INFO] Contenido actual del archivo por compilar: \n {self.ide.get()}")
-        
-        # Finalizar la compilación
-        print("[INFO] Finalizando la compilacion del código")
-        self.cpu_excel.reset(False)
-        print("[INFO] Memoria reiniciada")
+
+        # -----------------------------------------------------------------
+        # 2) Ahora sí, reiniciar memorias y compilar
+        # -----------------------------------------------------------------
+        # Compilación “real”
+        self.controller.print_console("[INFO] Compilando código…")
+        self.controller.print_console(f"[INFO] Archivo fuente: {self.current_file}")
+        self.controller.print_console(f"[INFO] Contenido actual:\n{self.ide.get()}")
+
+        # … aquí iría el proceso de compilación …
+
+        self.controller.print_console("[INFO] Compilación finalizada")
+        self.cpu_excel.reset(False)               # ← se ejecuta DESPUÉS del guardado
+        self.controller.print_console("[INFO] Memoria reiniciada")
