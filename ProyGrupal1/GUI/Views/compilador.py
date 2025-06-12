@@ -499,5 +499,5 @@ class CompiladorView:
         # … aquí iría el proceso de compilación …
 
         self.controller.print_console("[INFO] Compilación finalizada")
-        self.cpu_excel.reset(False)               # ← se ejecuta DESPUÉS del guardado
+        self.cpu_excel.reset(False)
         self.controller.print_console("[INFO] Memoria reiniciada")
