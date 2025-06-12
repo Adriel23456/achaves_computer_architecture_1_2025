@@ -70,39 +70,43 @@ OPCODES = {
     'PRINTI':   '00110101',
     'PRINTS':   '00110110',
     'PRINTB':   '00110111',
-    'PRINTL':   '00111000',
-    'PRINTR':   '00111001',
 
     # Control de usuario
-    'LOGOUT':   '00111010',
-    'LOGIN':    '00111011',
-    'CLEAR':    '00111100',
+    'LOGOUT':   '00111000',
+
 
     # Seguridad
-    'AUTHCMP':  '00111101',
-    'STRPASS':  '00111110',
-    'STRK':     '00111111',
+    'STRK':     '00111001',
+    'STRPASS':  '00111010',
+    
 }
 
 # Función para codificar un registro Rn o wn
 
 def encode_register(regname):
     """Codifica un registro según la especificación ISA"""
-    if regname.startswith('R'):
+    regname = regname.lower()  # Estandariza todo a minúsculas
+
+    if regname.startswith('r'):
         number = int(regname[1:])
-        return format(number, '04b')  # 4 bits directos
+        return format(number, '04b')
     elif regname.startswith('w'):
-        # Según la especificación: w1=0001, w2=0010, w3=0011, etc.
-        # Los registros w se mapean directamente a su número
         number = int(regname[1:])
         return format(number, '04b')
-    elif regname.startswith('P'):
-        # Registros de contraseña P1, P2, etc.
-        # P5 = 0101 (no restar 1, usar el número directo)
+    elif regname.startswith('p'):
         number = int(regname[1:])
         return format(number, '04b')
+    elif regname.startswith('d'):
+        number = int(regname[1:])
+        return format(number + 9, '04b')  # ajusta según codificación real
+        return format(number, '04b')
+    elif regname.startswith('k'):
+        # Maneja claves del tipo k0.0, k1.3, etc.
+        clave, word = map(int, regname[1:].split('.'))
+        return format(clave, '02b') + format(word, '02b')
     else:
         raise ValueError(f"Registro desconocido: {regname}")
+
 
 def encode_special_field(tokens, op):
     """Determina el campo Special basado en los operandos"""

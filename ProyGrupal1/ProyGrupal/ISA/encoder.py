@@ -189,6 +189,42 @@ def encode_instruction(tokens):
             bin_cmps = encode_instruction(tokens_cmps)
             binaries.append(bin_cmps)
         return binaries
+    
+    # =========================================
+    # Pseudoinstrucción TEA #0, #val
+    if op == 'TEA':
+        binaries = []
+        val = int(tokens[3][1].replace('#', ''), 0)
+        tokens1 = [('OPCODE', 'MOVI'), ('REG', 'W6'), ('COMMA', ','), ('IMM', f'#{hex(val)}')]
+        tokens2 = [('OPCODE', 'MOVI'), ('REG', 'W7'), ('COMMA', ','), ('IMM', '#32')]
+        binaries.append(encode_instruction(tokens1))
+        binaries.append(encode_instruction(tokens2))
+        return binaries
+    
+    # =========================================
+    # Pseudoinstrucción TEAENC #1, kx
+    if op == 'TEAENC' and tokens[1][1] == '#1':
+        binaries = []
+        clave_token = tokens[3][1]  # 'k1', etc.
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+        binaries.append(encode_instruction([('OPCODE', 'ADD'), ('REG', 'W6'), ('COMMA', ','), ('REG', 'W6'), ('COMMA', ','), ('REG', 'd0')]))
+        binaries.append(encode_instruction([('OPCODE', 'LSLI'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W5'), ('COMMA', ','), ('IMM', '#4')]))
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+        kword = f'{clave_token}.0'
+        binaries.append(encode_instruction([('OPCODE', 'ADDS'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W8'), ('COMMA', ','), ('KWORD', kword)]))
+        return binaries
+
+    # =========================================
+    # Pseudoinstrucción TEAENC #2
+    if op == 'TEAENC' and tokens[1][1] == '#2':
+        binaries = []
+        binaries.append(encode_instruction([('OPCODE', 'ADD'), ('REG', 'W9'), ('COMMA', ','), ('REG', 'W5'), ('COMMA', ','), ('REG', 'W6')]))
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+        binaries.append(encode_instruction([('OPCODE', 'EOR'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W9')]))
+        return binaries
 
     else:
         raise ValueError(f"No se puede codificar instrucción: {op}")

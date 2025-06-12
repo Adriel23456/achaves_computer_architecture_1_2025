@@ -5,7 +5,7 @@ token_specification = [
     ('LABEL',   r'\.\w+'),  # Etiquetas como .Linicio
     ('REG',     r'[Rw]\d+'),  # Registros: R0-R15, w1-w9
     ('MEM',     r'[GDVP]\[[Rw]\d+(?:,\s*#?-?\d+)?\]'),  # G[R1], D[w3, #4], etc.
-    ('KWORD',   r'k\d\.\d'),  # Claves criptográficas como k0.0
+    ('KWORD', r'k\d+(?:\.\d+)?'),  # Claves criptográficas como k0.0
     ('PASS',    r'P\d+'),  # Para contraseñas: P1, P2, P3, etc.
     ('OPCODE',  r'[A-Z]+'),  # Nombres de instrucciones
     ('IMM',     r'#0x[0-9A-Fa-f]+|#-?\d+'),  # Inmediatos hex o decimales

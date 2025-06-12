@@ -81,6 +81,11 @@ instruction_patterns = {
 
     'AUTHCMP': ['OPCODE'],
 
+    'TEA': ['OPCODE', 'IMM', 'COMMA', 'IMM'],
+    
+    'TEAENC': ['OPCODE', 'IMM'],
+    'TEAENC': ['OPCODE', 'IMM', 'COMMA', 'KWORD']
+
 }
 
 def parse_tokens(tokens):
