@@ -553,18 +553,5 @@ def encode_instruction(tokens, label_table=None, current_index= None):
         ]))
         
         return binaries
-    
-    
-    
-
-
-
-
-
-
-    
-
     else:
         raise ValueError(f"No se puede codificar instrucción: {op}")
-    
-    
