@@ -487,7 +487,10 @@ class CPUView:
                 if hasattr(self.cpu_excel, method_name):
                     data_type, value = getattr(self.cpu_excel, method_name)()
                     login_value = self._parse_excel_value(data_type, value)
+                    # IMPORTANTE: P1 va en índice 0, P2 en índice 1, etc.
                     cpu.login_memory._mem[i-1] = login_value
+                    # Debug opcional
+                    self.controller.print_console(f"[LOAD] P{i} → LoginMem[{i-1}] = {login_value}")
             
             # ═══════════════════════════════════════════════════════════════
             # 5. CARGAR MEMORIA GENERAL (64 bloques)
@@ -655,3 +658,36 @@ class CPUView:
             
         except Exception as e:
             self.controller.print_console(f"[ERROR] Error guardando estado: {e}")
+    
+    def _debug_authentication_state(self):
+        """Función auxiliar para depurar el estado de autenticación"""
+        if not hasattr(self, 'cpu_instance'):
+            return
+        
+        cpu = self.cpu_instance
+        self.controller.print_console("\n[DEBUG] Estado de Autenticación:")
+        
+        # Mostrar registros R1-R8
+        for i in range(1, 9):
+            val = cpu.register_file.regs[i]
+            self.controller.print_console(f"  R{i} = 0x{val:08X} ({val})")
+        
+        # Mostrar contenido de LoginMemory (P1-P8)
+        self.controller.print_console("\n[DEBUG] LoginMemory (Contraseñas):")
+        for i in range(8):
+            try:
+                # Necesitamos L=1 para leer sin S1/S2
+                val = cpu.login_memory._mem[i]  # Acceso directo para debug
+                self.controller.print_console(f"  P{i+1} (índice {i}) = 0x{val:08X} ({val})")
+            except:
+                pass
+        
+        # Mostrar flags
+        flags = cpu.flags
+        self.controller.print_console(f"\n[DEBUG] Flags: N={flags.N} Z={flags.Z} C={flags.C} V={flags.V}")
+        self.controller.print_console(f"[DEBUG] SafeFlags: S1={flags.S1} S2={flags.S2}")
+        
+        # Mostrar estado de autenticación
+        auth = cpu.cond_unit.auth_process
+        self.controller.print_console(f"[DEBUG] Intentos: {auth.try_counter}/15")
+        self.controller.print_console(f"[DEBUG] Bloques validados: {bin(auth.get_block_states())}")

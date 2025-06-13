@@ -58,6 +58,7 @@ class AuthenticationProcess:
     def login_proceso(self, LogininBlockE: bytearray, ComSE: bytearray,
                       ALUFlagsOut: bytearray, LogOutE: bytearray):
         now = datetime.now()
+        print(f"[AUTH_DEBUG] LoginBlockE={LogininBlockE[0]:08b}, bloque_idx={LogininBlockE[0] & 0b00000111}")
 
         if self.try_counter >= 15:
             if self.get_sesion_activa_desde() is None:
@@ -104,4 +105,12 @@ class AuthenticationProcess:
             self.S1 = 1
             self.S2 = 1
 
+        # Cuando se validan todos los bloques:
+        if self.todos_los_bloques_verificados():
+            print("Todos los bloques han sido validados exitosamente.")
+            self.S1 = 1
+            self.S2 = 1
+            print(f"[AUTH] Login completo: S1={self.S1}, S2={self.S2}")
+            print(f"[AUTH] Block states final: {self.block_states[0]:08b}")
+        
         return self.S1, self.S2

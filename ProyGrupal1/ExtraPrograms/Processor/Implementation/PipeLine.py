@@ -127,12 +127,13 @@ class Pipeline:
 
         elif src_b == 0b11:                # LoginMemory
             try:
+                # IMPORTANTE: ar2 es el índice del bloque de contraseña (0-7)
+                # Usar el valor directo de ar2, no como índice de registro
                 B_intermedio = self.login_memory.read(ar2, L_signal)
+                print(f"[DECODE] LoginMemory read: block[{ar2}] = 0x{B_intermedio:08X}")
             except PermissionError as e:
                 print(f"[DECODE] Acceso bloqueado a LoginMem: {e}")
-                raise
-        else:
-            B_intermedio = 0         
+                B_intermedio = 0  # Valor por defecto en caso de error        
 
         # MUX final: ImmediateOp decide si usar inmediato directamente
         if ctrl.ImmediateOp:

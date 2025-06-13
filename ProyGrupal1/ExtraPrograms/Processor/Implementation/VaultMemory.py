@@ -31,7 +31,9 @@ class VaultMemory:
     # ───────────────────────────────────────────────────────
     def read(self, k: int) -> int:
         """Devuelve el bloque k si S1/S2 están activos; combinacional."""
-        if self._flags.enabled() != 1:
+        enabled = self._flags.enabled()
+        if enabled != 1:
+            print(f"[VAULT] Lectura denegada: S1={self._flags.S1}, S2={self._flags.S2}, enabled={enabled}")
             raise PermissionError("Lectura denegada: S1/S2 inactivos.")
         idx = k & 0xF
         if idx >= NUM_BLOCKS:
@@ -48,7 +50,11 @@ class VaultMemory:
         we   : 1 = solicitar escritura
         """
         if not we:
-            return  # nada que latch-ear
+            return
+        enabled = self._flags.enabled()
+        if enabled != 1:
+            print(f"[VAULT] Escritura denegada: S1={self._flags.S1}, S2={self._flags.S2}, enabled={enabled}")
+            raise PermissionError("Escritura denegada: S1/S2 inactivos.")
         if self._flags.enabled() != 1:
             raise PermissionError("Escritura denegada: S1/S2 inactivos.")
         if not (0 <= data <= BLOCK_MASK):

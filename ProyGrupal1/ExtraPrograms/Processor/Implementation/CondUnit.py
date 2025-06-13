@@ -68,15 +68,27 @@ class CondUnit:
         self.CondExE = 1 if take else 0
 
     def _handle_security(self, LogOutE: int, ComSE: int,
-                         LoginBlockE: int, ALUFlagsOut: int):
+                     LoginBlockE: int, ALUFlagsOut: int):
         login_block_ba = bytearray([LoginBlockE])
         com_se_ba = bytearray([ComSE])
         alu_flags_ba = bytearray([ALUFlagsOut])
         logout_ba = bytearray([LogOutE])
 
-        # en buena teoria esta vara llama al singleton del autenticador, hay que verificar si funciona
+        # Llamar al proceso de autenticación
         S1, S2 = self.auth_process.login_proceso(
             login_block_ba, com_se_ba, alu_flags_ba, logout_ba
         )
-        # esto devuelve el 0b00 correspondiente a las banteras
-        self.SafeFlagsOut = (S1 << 1) | S2
+        
+        # CRÍTICO: Sincronizar con el objeto Flags del procesador
+        if S1 == 1 and S2 == 1:
+            self.flags.login()  # Esto actualiza S1 y S2 en el objeto Flags compartido
+            print("[COND] Login exitoso - Flags S1/S2 activados")
+        elif LogOutE == 1:
+            self.flags.logout()  # Esto limpia S1 y S2 en el objeto Flags compartido
+            print("[COND] Logout - Flags S1/S2 desactivados")
+        
+        # Actualizar SafeFlagsOut para reflejar el estado actual
+        self.SafeFlagsOut = (self.flags.S1 << 1) | self.flags.S2
+        
+        # Para debug
+        print(f"[COND] SafeFlagsOut={self.SafeFlagsOut:02b} (S1={self.flags.S1}, S2={self.flags.S2})")

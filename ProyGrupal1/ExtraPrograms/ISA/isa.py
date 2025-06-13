@@ -97,7 +97,9 @@ def encode_register(regname):
         return format(number - 1, '04b')   # w1→0→0000, w9→8→1000
     elif regname.startswith('p'):
         number = int(regname[1:])
-        return format(number, '04b')
+        if not 1 <= number <= 8:
+            raise ValueError("Registro 'P' fuera de rango: válido P1-P8")
+        return format(number - 1, '04b')   # P1→0→0000, P2→1→0001, ..., P8→7→0111
     elif regname.startswith('d'):
         number = int(regname[1:])
         if number != 0:

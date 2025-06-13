@@ -186,8 +186,6 @@ def encode_instruction(tokens, label_table=None, current_index= None):
 
         return opcode + special + rd + rn + bin_clave + bin_word + bin_imm + extra
 
-
-
     elif op == 'STRPASS':
         opcode = OPCODES[op]
         special = encode_special_field(tokens, op)
@@ -196,16 +194,14 @@ def encode_instruction(tokens, label_table=None, current_index= None):
         rn = '0000'  # No importa
 
         pass_token = tokens[1][1]  # Ej: 'P1'
-        pass_index = int(pass_token[1:])  # => 1
-        bin_pass = format(pass_index, '04b')
+        # CORRECCIÓN: Usar encode_register para mantener consistencia
+        bin_pass = encode_register(pass_token)  # P1→0000, P2→0001, etc.
 
         imm = int(tokens[2][1].replace('#', ''), 0)  # Inmediato
         bin_imm = format(imm & 0xFFFFFFFF, '032b')
         extra = '0' * 8
 
         return opcode + special + rd + rn + bin_pass + bin_imm + extra
-
-
     
     # =========================================
     # Pseudoinstrucción AUTHCMP (expande a 8 CMPS)

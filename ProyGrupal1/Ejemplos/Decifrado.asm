@@ -12,6 +12,10 @@
 	NOP
 	NOP
 	AUTHCMP
+	NOP
+	NOP
+	NOP
+	NOP
 
 .set_up_cript_key:
 	STRK k0.0 #0xDEADBEEF

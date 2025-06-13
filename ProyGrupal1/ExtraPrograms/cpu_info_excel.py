@@ -1859,13 +1859,13 @@ class CPUInfoExcel:
             self.write_k3_3("0x00000000")
             
             # Write numérico (valores iniciales) usando funciones de la contraseña
-            self.write_p1("0x00000001")
-            self.write_p2("0x00000010")
-            self.write_p3("0x00000011")
-            self.write_p4("0x00000100")
-            self.write_p5("0x00000101")
-            self.write_p6("0x00000110")
-            self.write_p7("0x00000111")
-            self.write_p8("0x00001000")
+            self.write_p1("0x00000001")  # P1 = 1
+            self.write_p2("0x00000002")  # P2 = 2
+            self.write_p3("0x00000003")  # P3 = 3
+            self.write_p4("0x00000004")  # P4 = 4
+            self.write_p5("0x00000005")  # P5 = 5
+            self.write_p6("0x00000006")  # P6 = 6
+            self.write_p7("0x00000007")  # P7 = 7
+            self.write_p8("0x00000008")  # P8 = 8
 
         self.table.execute_all()
