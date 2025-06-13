@@ -500,4 +500,5 @@ class CompiladorView:
 
         self.controller.print_console("[INFO] Compilación finalizada")
         self.cpu_excel.reset(False)
-        self.controller.print_console("[INFO] Memoria reiniciada")
+        self.controller.print_console("[INFO] Memorias reiniciada")
+        self.controller.set_current_file(self.current_file)

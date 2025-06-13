@@ -1,15 +1,2 @@
-sdasdasdad
-
-sdasdad
-sdasdad
-sdasdad
-
-
-
-sdasdad
-sdasdadsdasdad
-
-
-sdasdad
-sdasdad
-sdasdad
+ADD R1, R2, R1
+ADD R3, R2, R1

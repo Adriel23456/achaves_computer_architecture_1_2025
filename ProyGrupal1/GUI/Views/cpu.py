@@ -248,25 +248,110 @@ class CPUView:
     
     def _on_execute_cycle(self):
         """Maneja el evento de ejecutar un ciclo"""
-        #Paso 1: Cargar memorias y señales, desde el excel
+        #Paso 0: Asegurar la existencia de memoria de instrucciones y archivo de instrucciones
+        from pathlib import Path, PurePath
+        current_file = self.controller.get_current_file() #Archivo de las instrucciones en crudo
+        instruction_mem_path = Path(self.base_dir) / "Assets" / "instruction_mem.bin"
+        if not current_file or not Path(current_file).exists() or not instruction_mem_path.exists():
+            self.controller.print_console(
+                "[ERROR] Fallo en la detección de memoria de instrucción o archivo de instrucciones")
+            return
         
-        #Paso 2:Ejecutar SOLO 1 ciclo
+        # Lista limpia de instrucciones fuente (líneas no vacías, sin \n)
+        try:
+            with open(current_file, encoding="utf-8") as f:
+                instructions_src = [ln.strip() for ln in f.readlines() if ln.strip()]
+        except Exception as e:
+            self.controller.print_console(f"[ERROR] No se pudo leer el archivo de instrucciones: {e}")
+            return
         
-        #Paso 3:Cargar todas las señales y memorias en excel
+        # 64 bits = 8 bytes por instrucción  → comprobar tamaño del .bin
+        expected_bytes = len(instructions_src) * 8
+        real_bytes     = instruction_mem_path.stat().st_size
+        if real_bytes != expected_bytes:
+            self.controller.print_console(
+                f"[ERROR] instruction_mem.bin tamaño inválido "
+                f"(esperado {expected_bytes} bytes, encontrado {real_bytes})")
+            return   
         
-        #Paso 4:Actualizar diagrama, memorias y señales
+        # Paso 1  ▸ Avanzar el pipeline una etapa
+        _, fetch_prev   = self.cpu_excel.read_state_fetch()
+        self.cpu_excel.write_state_decode(fetch_prev)
+        _, decode_prev  = self.cpu_excel.read_state_decode()
+        self.cpu_excel.write_state_execute(decode_prev)
+        _, exec_prev    = self.cpu_excel.read_state_execute()
+        self.cpu_excel.write_state_memory(exec_prev)
+        _, mem_prev     = self.cpu_excel.read_state_memory()
+        self.cpu_excel.write_state_writeBack(mem_prev)
+        
+        # Calcular la nueva instruccion del Fetch
+        _, pcf_raw = self.cpu_excel.read_pcf()
+        # Normalizar a entero sin signo
+        try:
+            if isinstance(pcf_raw, int):
+                pcf_val = pcf_raw & 0xFFFFFFFF
+            else:
+                pcf_val = int(str(pcf_raw), 0) & 0xFFFFFFFF
+        except Exception:
+            pcf_val = 0
+        line_idx   = pcf_val // 8
+        fetch_value = instructions_src[line_idx] if 0 <= line_idx < len(instructions_src) else "NOP"
+        self.cpu_excel.write_state_fetch(fetch_value)
+
+        self.cpu_excel.table.execute_all()
+    
+        #Paso 2: Cargar memorias y señales, desde el excel
+        
+        #Paso 3:Ejecutar SOLO 1 ciclo , pero si es un SWI en writeback entonces no hacer nada!
+        
+        #Paso 4:Cargar todas las señales y memorias en excel
+        
+        #Paso 5:Actualizar diagrama, memorias y señales
         self.diagram.update_signals()
         self._load_initial_values()
         self.controller.print_console("[CPU] Se ejecutó un ciclo")
     
     def _on_execute_all(self):
         """Maneja el evento de ejecutar todo"""
+        #Paso 0: Asegurar la existencia de memoria de instrucciones y archivo de instrucciones
+        from pathlib import Path, PurePath
+        current_file = self.controller.get_current_file() #Archivo de las instrucciones en crudo
+        instruction_mem_path = Path(self.base_dir) / "Assets" / "instruction_mem.bin"
+        if not current_file or not Path(current_file).exists() or not instruction_mem_path.exists():
+            self.controller.print_console(
+                "[ERROR] Fallo en la detección de memoria de instrucción o archivo de instrucciones")
+            return
+        
+        # Lista limpia de instrucciones fuente (líneas no vacías, sin \n)
+        try:
+            with open(current_file, encoding="utf-8") as f:
+                instructions_src = [ln.strip() for ln in f.readlines() if ln.strip()]
+        except Exception as e:
+            self.controller.print_console(f"[ERROR] No se pudo leer el archivo de instrucciones: {e}")
+            return
+        
+        # 64 bits = 8 bytes por instrucción  → comprobar tamaño del .bin
+        expected_bytes = len(instructions_src) * 8
+        real_bytes     = instruction_mem_path.stat().st_size
+        if real_bytes != expected_bytes:
+            self.controller.print_console(
+                f"[ERROR] instruction_mem.bin tamaño inválido "
+                f"(esperado {expected_bytes} bytes, encontrado {real_bytes})")
+            return 
         
         #Paso 1: Cargar memorias y señales, desde el excel
         
-        #Paso 2:Ejecutar hasta que no existan mas instrucciones
+        #Paso 2:Ejecutar hasta que no existan mas instrucciones o sea, si es un SWI en writeback entonces no hacer nada!
         
         #Paso 3:Cargar todas las señales y memorias en excel
+        
+        #Paso 4:Actualizar cual seria la ultima posicion del pipeline
+        self.cpu_excel.write_state_fetch('NOP')
+        self.cpu_excel.write_state_decode('NOP')
+        self.cpu_excel.write_state_execute('NOP')
+        self.cpu_excel.write_state_memory('NOP')
+        self.cpu_excel.write_state_writeBack('NOP')
+        self.cpu_excel.table.execute_all()
         
         #Paso 4:Actualizar diagrama, memorias y señales
         self.diagram.update_signals()

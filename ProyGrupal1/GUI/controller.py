@@ -21,6 +21,9 @@ class ViewController:
         self.current_view = None
         self.current_view_name = None
         
+        #Current File
+        self.current_file = None
+        
         # Mapeo de nombres a módulos y clases (sin tildes en las clases)
         self.view_mapping = {
             "Presentación": {
@@ -172,3 +175,11 @@ class ViewController:
         self.loaded_views.clear()
         self.current_view = None
         # No limpiar current_view_name aquí para poder recargar
+    
+    def set_current_file(self, current_file):
+        """Setea el valor del archivo actual con las instrucciones por ejecutar"""
+        self.current_file = current_file
+    
+    def get_current_file(self):
+        """Retorna el archivo actual con las instrucciones por ejecutar"""
+        return self.current_file
