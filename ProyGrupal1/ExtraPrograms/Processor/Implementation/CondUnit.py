@@ -28,7 +28,6 @@ class CondUnit:
                          LoginBlockE: int, FlagsUpdE: int, ALUFlagsOut: int,
                          flags_e: int):
 
-
         #está sección de abajo me confunde, entiendo el manejo de salidade banderas pero el tema del carry se me enredó, no sé si está bien
         if FlagsUpdE:
             # ALUFlagsOut viene como entero NZCV (bit 3=N … bit 0=V)
@@ -45,11 +44,28 @@ class CondUnit:
         print(f"[COND] BranchOp={BranchOpE:03b} CondExE={self.CondExE}")
 
     def _handle_branching(self, BranchOpE: int, nzcv: int):
-        #verifica las condiciones para el manejor de branches junto con sus flags
-        if BranchOpE == 0b111:
-            self.CondExE = 0b0
-        else:
-            self.CondExE = 0b1
+        """
+        Decide CondExE (1 = se ejecuta el branch) según BranchOpE y NZCV.
+            nzcv[3] = N, nzcv[2] = Z, nzcv[1] = C, nzcv[0] = V
+        """
+        N = (nzcv >> 3) & 1
+        Z = (nzcv >> 2) & 1
+        C = (nzcv >> 1) & 1    # (no se usa todavía, pero lo dejamos por claridad)
+        V =  nzcv        & 1
+
+        take = False
+        if   BranchOpE == 0b000:          # B   – incondicional
+            take = True
+        elif BranchOpE == 0b001:          # BEQ – igual  → Z = 1
+            take = (Z == 1)
+        elif BranchOpE == 0b010:          # BNE – no-igual → Z = 0
+            take = (Z == 0)
+        elif BranchOpE == 0b011:          # BLT – menor que (signed) → N ≠ V
+            take = (N != V)
+        elif BranchOpE == 0b100:          # BGT – mayor que → Z = 0 y N = V
+            take = (Z == 0 and N == V)
+        # 101,110,111: reservados / “no branch”
+        self.CondExE = 1 if take else 0
 
     def _handle_security(self, LogOutE: int, ComSE: int,
                          LoginBlockE: int, ALUFlagsOut: int):

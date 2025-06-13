@@ -1,0 +1,32 @@
+MOVI R1, #3
+MOVI R2, #5
+NOP
+NOP
+NOP
+NOP
+MOV R3, R2
+NOP
+NOP
+NOP
+NOP
+
+.Loop:
+	ADD R1, R1, R3
+	NOP
+	NOP
+	NOP
+	NOP
+	CMPI R1, #118
+	NOP
+	NOP
+	NOP
+	NOP
+	BNE .Loop
+	NOP
+	NOP
+	NOP
+	NOP
+SWI
+NOP
+NOP
+NOP
