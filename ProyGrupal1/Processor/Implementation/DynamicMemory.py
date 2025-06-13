@@ -3,7 +3,7 @@ from typing import List, Optional
 from Flags import Flags
 
 
-class DataMemory:
+class DynamicMemory:
     def __init__(self, flags: Flags, memory_size: int = 64, block_bits: int = 64):
         self._flags = flags
         self._memory_size = memory_size          # equivale a NUM_BLOCKS
