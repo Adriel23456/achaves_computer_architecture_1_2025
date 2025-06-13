@@ -27,7 +27,7 @@ class VaultMemory:
         self._pending: Optional[tuple[int, int]] = None  # (idx, data) latched
 
     # ───────────────────────────────────────────────────────
-    # Lectura (combinacional) equivalente a regs.read(...)
+    # Lectura (combinacional)
     # ───────────────────────────────────────────────────────
     def read(self, k: int) -> int:
         """Devuelve el bloque k si S1/S2 están activos; combinacional."""
@@ -39,13 +39,13 @@ class VaultMemory:
         return self._mem[idx]
 
     # ───────────────────────────────────────────────────────
-    # Escritura (latched)  →  análogo a RegisterFile.write(...)
+    # Escritura (latched)
     # ───────────────────────────────────────────────────────
     def write(self, k: int, data: int, we: int):
         """
-        • k    : dirección de bloque (0-15)
-        • data : entero de 32 bits
-        • we   : 1 = solicitar escritura
+        k    : dirección de bloque (0-15)
+        data : entero de 32 bits
+        we   : 1 = solicitar escritura
         """
         if not we:
             return  # nada que latch-ear

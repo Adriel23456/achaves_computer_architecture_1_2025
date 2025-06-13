@@ -163,8 +163,4 @@ class ALU:
         flags = Flags(N_out, Z_out, C_out & 1, V_out & 1)
         return res & MASK32, flags
 
-# simple smoke‑test (will be removed in integration)
-if __name__ == "__main__":
-    alu = ALU()
-    r,f = alu.execute(0b000000, 0x00000001, 0xFFFFFFFF)  # 1 + (-1) = 0
-    print(hex(r), f)
+

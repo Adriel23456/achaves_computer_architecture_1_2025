@@ -6,20 +6,15 @@ class BinaryZeroExtend:
         if isinstance(input_val, str) and input_val.startswith('0b'):
             input_val = int(input_val, 2)
 
-        # Asegurar 32bits
+        # Asegurar que input sea de 32 bits
         masked = input_val & 0xFFFFFFFF
 
-        if show_bits:
-            print(f"\nEntrada (32 bits):  {BinaryZeroExtend.int_to_bin32(masked)}")
-
-        # Eliminar los 8 bits más significativos y desplazar izquierda
-        # Primero eliminamos los 8 bits superiores (AND con 0x00FFFFFF)
-        # Luego desplazamos izquierda 8 bits (multiplicar por 256)
-        result = (masked & 0x00FFFFFF) << 8
+        # Extraer el byte menos significativo (LSB)
+        result = masked & 0xFF  # Zero-extend automático en Python
 
         if show_bits:
-            print(f"Máscara (0x00FFFFFF): {BinaryZeroExtend.int_to_bin32(0x00FFFFFF)}")
-            print(f"Desplazado << 8:    {BinaryZeroExtend.int_to_bin32(result)}")
+            print(f"\nEntrada (32 bits):    {BinaryZeroExtend.int_to_bin32(masked)}")
+            print(f"Byte menos sig. (LSB): {BinaryZeroExtend.int_to_bin32(result)}")
 
         return result
 

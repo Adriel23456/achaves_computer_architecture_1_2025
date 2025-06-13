@@ -30,17 +30,17 @@ class LoginMemory:
         self._pending: Optional[tuple[int, int]] = None
 
     # Lectura combinacional
-    def read(self, A: int) -> int:
-        if not (self._flags.enabled() == 1 or self._flags.login_active() == 1):
+    def read(self, A: int, L: int = 0) -> int:
+        if not (self._flags.enabled() == 1 or L):
             raise PermissionError("Lectura denegada: requiere L o S1/S2.")
         idx = A & 0x7
         return self._mem[idx]
 
     # Solicitud de escritura (latched)
-    def write(self, A: int, WD: int, WE: int):
+    def write(self, A: int, WD: int, WE: int, L: int = 0):
         if not WE:
             return
-        if not (self._flags.enabled() == 1 or self._flags.login_active() == 1):
+        if not (self._flags.enabled() == 1 or L):
             raise PermissionError("Escritura denegada: requiere L o S1/S2.")
         if not (0 <= WD <= BLOCK_MASK):
             raise ValueError(f"Dato excede {BLOCK_BITS} bits.")

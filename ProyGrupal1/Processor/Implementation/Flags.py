@@ -8,7 +8,6 @@ class Flags:
     • Seguridad: S1 y S2 → deben estar ambos en 1 para acceso seguro
     • Login   : L → transitorio, se activa con ComS (solo durante CMPS)
     """
-
     def __init__(self):
         # Flags de la ALU
         self.N = 0
@@ -19,10 +18,6 @@ class Flags:
         # Flags de seguridad
         self.S1 = 0
         self.S2 = 0
-
-        # Flag transitorio (se activa con ComS desde ControlUnit)
-        self.L  = 0  # ← debe ser asignado desde afuera, no aquí
-
     # ────────────────────────────────────────────────
     # Seguridad
     # ────────────────────────────────────────────────
@@ -61,5 +56,14 @@ class Flags:
         """Devuelve el estado completo de todos los flags."""
         return {
             "N": self.N, "Z": self.Z, "C": self.C, "V": self.V,
-            "S1": self.S1, "S2": self.S2, "L": self.L
+            "S1": self.S1, "S2": self.S2
         }
+    def as_nzcv(self) -> int:
+        """Devuelve NZCV como un entero de 4 bits (N en el bit 3)."""
+        return (self.N << 3) | (self.Z << 2) | (self.C << 1) | self.V
+
+    def as_full_int(self) -> int:
+        """Devuelve 6 bits: NZCV (bits 5-2) | S1S2 (bits 1-0)."""
+        nzcv = self.as_nzcv()
+        return (nzcv << 2) | ((self.S1 << 1) | self.S2)
+
