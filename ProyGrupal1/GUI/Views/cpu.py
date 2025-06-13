@@ -1,5 +1,6 @@
 # GUI/Views/cpu.py ─ Vista del CPU con diagrama interactivo
 import time
+from pathlib import Path, PurePath
 import tkinter as tk
 from GUI.Components.styled_button      import StyledButton
 from GUI.Components.memory_table_view  import MemoryTableView
@@ -250,7 +251,6 @@ class CPUView:
     def _on_execute_cycle(self):
         """Maneja el evento de ejecutar un ciclo"""
         #Paso 0: Asegurar la existencia de memoria de instrucciones y archivo de instrucciones
-        from pathlib import Path, PurePath
         current_file = self.controller.get_current_file() #Archivo de las instrucciones en crudo
         instruction_mem_path = Path(self.base_dir) / "Assets" / "instruction_mem.bin"
         if not current_file or not Path(current_file).exists() or not instruction_mem_path.exists():
@@ -261,13 +261,15 @@ class CPUView:
         # Lista limpia de instrucciones fuente (líneas no vacías, sin \n)
         try:
             with open(current_file, encoding="utf-8") as f:
-                instructions_src = [ln.strip() for ln in f.readlines() if ln.strip()]
+                all_lines = [ln.strip() for ln in f.readlines() if ln.strip()]
         except Exception as e:
             self.controller.print_console(f"[ERROR] No se pudo leer el archivo de instrucciones: {e}")
             return
+        # Filtramos las etiquetas (líneas que empiezan con '.')
+        instructions = [ln for ln in all_lines if not ln.startswith('.')]
         
         # 64 bits = 8 bytes por instrucción  → comprobar tamaño del .bin
-        expected_bytes = len(instructions_src) * 8
+        expected_bytes = len(instructions) * 8
         real_bytes     = instruction_mem_path.stat().st_size
         if real_bytes != expected_bytes:
             self.controller.print_console(
@@ -296,7 +298,7 @@ class CPUView:
         except Exception:
             pcf_val = 0
         line_idx   = pcf_val // 8
-        fetch_value = instructions_src[line_idx] if 0 <= line_idx < len(instructions_src) else "NOP"
+        fetch_value = instructions[line_idx] if 0 <= line_idx < len(instructions) else "NOP"
         self.cpu_excel.write_state_fetch(fetch_value)
 
         self.cpu_excel.table.execute_all()
