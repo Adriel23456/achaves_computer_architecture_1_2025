@@ -14,7 +14,7 @@ BLOCK_BITS  = 64
 NUM_BLOCKS  = load_Memory_Size()
 BLOCK_MASK  = (1 << BLOCK_BITS) - 1  # 0xFFFFFFFF
 
-class DataMemory:
+class DynamicMemory:
 
 
 #señales para luego no confundirme

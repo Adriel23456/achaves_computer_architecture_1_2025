@@ -109,22 +109,25 @@ class ALU:
             res = A ^ B
         elif op == 0b001001:  # BIC
             res = A & (~B & MASK32)
-        elif op == 0b001010:  # LSL (custom 32-bit safe)
-            if B >= 32:
-                res = 0
-                C_out = (A >> 0) & 1  # bit 0 original como último bit en salir
+        elif op == 0b001010:  # LSL (Logical Shift Left)
+            shift = B & 0x1F            # solo 5 bits significativos
+            if shift == 0:
+                res = A & MASK32
+                # convención: carry no cambia (0)
+                C_out = 0
             else:
-                shift = B
                 res = (A << shift) & MASK32
-                C_out = (A >> (32 - shift)) & 1 if shift else 0
-        elif op == 0b001011:  # LSR (custom 32-bit safe)
-            if B >= 32:
+                C_out = (A >> (32 - shift)) & 1
+
+        elif op == 0b001011:  # LSR (Logical Shift Right)
+            shift = B & 0x1F
+            if shift == 0:
+                # en ARM un shift de 0 significa 32 → resultado 0, carry = bit31
                 res = 0
-                C_out = (A >> 31) & 1  # bit más significativo original como último bit en salir
+                C_out = (A >> 31) & 1
             else:
-                shift = B
-                res = (A & MASK32) >> shift if shift else A
-                C_out = (A >> (shift - 1)) & 1 if shift else 0
+                res = (A & MASK32) >> shift
+                C_out = (A >> (shift - 1)) & 1
 
         elif op == 0b001100:  # ASR (signed)
             shift = B
@@ -162,5 +165,6 @@ class ALU:
         Z_out = 1 if (res & MASK32) == 0 else 0
         flags = Flags(N_out, Z_out, C_out & 1, V_out & 1)
         return res & MASK32, flags
+    
 
 

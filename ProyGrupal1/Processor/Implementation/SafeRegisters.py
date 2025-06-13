@@ -29,10 +29,12 @@ class SafeRegisterFile:
     def read(self, ar1: int, ar2: int) -> tuple[int, int]:
         if self._flags.enabled() != 1:
             raise PermissionError("Lectura denegada: S1/S2 inactivos.")
-        return (
-            self._regs[ar1 & 0xF],
-            self._regs[ar2 & 0xF],
-        )
+
+        if ar1 >= len(self._regs) or ar2 >= len(self._regs):
+            raise IndexError(f"Índice fuera de rango para SafeRegisters: {ar1} o {ar2}")
+
+        return self._regs[ar1], self._regs[ar2]
+
 
     # Solicitud de escritura (latched hasta tick)
     def write(self, ar3: int, wdr3: int, regwrite: int):
@@ -41,11 +43,12 @@ class SafeRegisterFile:
         if self._flags.enabled() != 1:
             raise PermissionError("Escritura denegada: S1/S2 inactivos.")
 
-        idx = ar3 & 0xF
-        if idx == 9:
+        if ar3 >= len(self._regs):
+            raise IndexError(f"Índice fuera de rango para SafeRegisters: {ar3}")
+        if ar3 == 9:
             raise PermissionError("Registro d0 es de solo-lectura.")
 
-        self._pending = (idx, wdr3 & MASK32)
+        self._pending = (ar3, wdr3 & MASK32)
 
 
     # Flanco de reloj: commit de la escritura

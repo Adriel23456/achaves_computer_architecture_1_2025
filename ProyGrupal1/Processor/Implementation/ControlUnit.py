@@ -206,7 +206,12 @@ class ControlUnit:
     # ------------ helpers compuestos -------------------------------
     def _set_reg_write(self,b):
         self.RegWriteS, self.RegWriteR = b, b^1
-    def _set_mem_write(self,b):
-        self.MemWriteD, self.MemWriteG = b, b^1
-    def _set_mem_op(self,b):
-        self.MemOp = b & 0b11
+    def _set_mem_write(self, b):
+        # b = 0 → escribir en memoria general
+        # b = 1 → escribir en memoria dinámica
+        self.MemWriteG = 1 if b == 0 else 0
+        self.MemWriteD = 1 if b == 1 else 0
+    def _set_mem_op(self, b):
+        # b = 0 → general → MemOp = 00
+        # b = 1 → dinámica → MemOp = 01
+        self.MemOp = 0b00 if b == 0 else 0b01

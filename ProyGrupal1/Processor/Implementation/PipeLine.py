@@ -1,7 +1,4 @@
-from Printer import PrinterUnit  # si está en otro archivo
-
-
-   
+from PrinterUnit import PrinterUnit  # si está en otro archivo
 
 class Pipeline:
     def __init__(self, program_counter, instruction_memory,
@@ -22,7 +19,6 @@ class Pipeline:
         self.flags = flags
         self.control_unit = control_unit
         self.cond_unit = cond_unit
-        # TODO:  self.cond_unit = CondUnit(self.flags)
         self.extend = extend
 
         # ─── Registros de etapa ─────────────────────────────
@@ -40,6 +36,9 @@ class Pipeline:
         # ─── Ciclo de reloj y estadísticas ─────────────────
         self.clock_cycle = 0
         self.instructions_completed = 0
+
+        self.flush_pipeline()
+
     def fetch(self):
         # No sobreescribimos si ya hay una instrucción pendiente en IF/ID
         if self.if_id is not None:
@@ -111,15 +110,28 @@ class Pipeline:
         # ── Operando B ─────────────────────────────
         src_b = ctrl.RegisterInB  # valor de 2 bits
 
-        # B intermedio: resultado del primer MUX (RegisterInB)
+        # B_intermedio: resultado del MUX RegisterInB
         if src_b == 0b00:
             _, B_intermedio = self.register_file.read(0, ar2)
+
         elif src_b == 0b01:
             _, B_intermedio = self.safe_register_file.read(0, ar2)
-        elif src_b == 0b10:
-            B_intermedio = self.vault_memory.read(ar2)
-        elif src_b == 0b11:
-            B_intermedio = self.login_memory.read(ar2, L_signal)
+
+        elif src_b == 0b10:                # VaultMemory
+            try:
+                B_intermedio = self.vault_memory.read(ar2)
+            except PermissionError as e:
+                print(f"[DECODE] ⚠️ Acceso bloqueado a Vault: {e}")
+                raise
+
+        elif src_b == 0b11:                # LoginMemory
+            try:
+                B_intermedio = self.login_memory.read(ar2, L_signal)
+            except PermissionError as e:
+                print(f"[DECODE] ⚠️ Acceso bloqueado a LoginMem: {e}")
+                raise
+        else:
+            B_intermedio = 0         
 
         # MUX final: ImmediateOp decide si usar inmediato directamente
         if ctrl.ImmediateOp:
@@ -179,6 +191,9 @@ class Pipeline:
         # === Ejecutar ALU ===
         result, alu_flags_out = self.alu.execute(ctrl["ALUSrc"], A, B, carry_in)
 
+        nzcv = (alu_flags_out[0] << 3) | (alu_flags_out[1] << 2) | (alu_flags_out[2] << 1) | alu_flags_out[3]
+
+
         # === CondUnit: evaluar condición de ejecución segura ===
         self.cond_unit.generate_signals(
             ctrl["BranchOp"],
@@ -186,7 +201,7 @@ class Pipeline:
             ctrl["ComS"],
             login_block_e,
             ctrl["FlagsUpd"],
-            alu_flags_out,
+            nzcv,
             flags_e,
         )
         # === Calcular PCSrc modificado ===
@@ -212,11 +227,16 @@ class Pipeline:
             "Rd_Special": self.id_ex["Rd_Special"],
         }
 
+        # Flags para depuración
+        n, z, c, v = alu_flags_out
+        print(f"EX  | ALUOut={result:#010X} | Flags[NZCV]={n}{z}{c}{v}")
+
+
     def mem(self):
         if not self.ex_mem:
             return
 
-        addr = self.ex_mem["ALUOut"]
+        alu_out_ex = self.ex_mem["ALUOut"]
         rd = self.ex_mem["rd"]
         rd_special = self.ex_mem["Rd_Special"]
         ctrl = self.ex_mem["control_signals"]
@@ -224,9 +244,9 @@ class Pipeline:
         # ==== Operación de memoria si corresponde ====
         alu_out = None
         if ctrl["MemOp"] == 0b00:  # LOAD de memoria general
-            alu_out = self.data_memory.read(addr)
+            alu_out = self.data_memory.read(alu_out_ex)
         elif ctrl["MemOp"] == 0b01:  # LOAD de memoria dinámica
-            alu_out = self.dynamic_memory.read(addr)
+            alu_out = self.dynamic_memory.read(alu_out_ex)
         elif ctrl["MemOp"] == 0b10:
             print("No se espera recibir un MemOP de 10")
 
@@ -235,14 +255,14 @@ class Pipeline:
             WD_G = self.extend.uxtb_32_to_32(rd_special)
         else:
             WD_G = rd_special
-        self.data_memory.write(addr, WD_G, ctrl["MemWriteG"])
+        self.data_memory.write(alu_out_ex, WD_G, ctrl["MemWriteG"])
 
         WD_D = 0
         if ctrl["MemByte"]:
             WD_D = self.extend.uxtb_32_to_32(rd_special)
         else:
             WD_D = rd_special
-        self.dynamic_memory.write(addr, WD_D, ctrl["MemWriteD"])
+        self.dynamic_memory.write(alu_out_ex, WD_D, ctrl["MemWriteD"])
 
 
         control_signals = {                    # nombres originales
@@ -252,7 +272,7 @@ class Pipeline:
             "PCSrc":     ctrl["PCSrc"],
             "PrintEn":   ctrl["PrintEn"],
         }
-        val_wb = alu_out if alu_out is not None else addr
+        val_wb = alu_out if alu_out is not None else alu_out_ex
 
         # ==== Guardar resultado para WB ====
         self.next_mem_wb = {
@@ -290,9 +310,51 @@ class Pipeline:
         self.pc.result_w = alu_out           # dirección calculada en EX/MEM
         self.pc.pcsrc_w = ctrl["PCSrc"]  # ya AND-eado con CondExE
 
-        # === Estadística ===
-        self.instructions_completed += 1
 
+    def step(self):
+        # === 1. Ejecutar etapas del ciclo actual ===
+        self.writeback()
+        self.mem()
+        self.execute()
+        self.decode()
+        self.fetch()
+
+        # === 2. Aplicar avance de registros entre etapas ===
+        self.if_id = self.next_if_id
+        self.id_ex = self.next_id_ex
+        self.ex_mem = self.next_ex_mem
+        self.mem_wb = self.next_mem_wb
+
+        self.next_if_id = None
+        self.next_id_ex = None
+        self.next_ex_mem = None
+        self.next_mem_wb = None
+
+        # === 3. Flanco de reloj para módulos sincronizados ===
+        self.pc.tick()
+        self.register_file.tick()
+        self.safe_register_file.tick()
+        self.vault_memory.tick()
+        self.login_memory.tick()
+        self.data_memory.tick()
+        self.dynamic_memory.tick()
+
+        # === 4. Verificar salto condicional después del tick ===
+        branch_taken = bool(self.pc.pcsrc_w)
+        if branch_taken:
+            self.if_id = None
+            self.id_ex = None
+            self.next_if_id = None  # ← también este, para evitar fetch basura
+
+        # === 5. Actualizar contador de ciclos ===
+        self.clock_cycle += 1
+
+
+    def flush_pipeline(self):
+        self.if_id = None
+        self.id_ex = None
+        self.ex_mem = None
+        self.mem_wb = None
 
 
 

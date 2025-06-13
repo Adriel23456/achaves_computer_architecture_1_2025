@@ -31,7 +31,11 @@ class CondUnit:
 
         #está sección de abajo me confunde, entiendo el manejo de salidade banderas pero el tema del carry se me enredó, no sé si está bien
         if FlagsUpdE:
-            n, z, c, v = ALUFlagsOut          # tupla Flags
+            # ALUFlagsOut viene como entero NZCV (bit 3=N … bit 0=V)
+            n = (ALUFlagsOut >> 3) & 1
+            z = (ALUFlagsOut >> 2) & 1
+            c = (ALUFlagsOut >> 1) & 1
+            v =  ALUFlagsOut        & 1
             self.flags.update_alu(n, z, c, v)
         
         nzcv = self.flags.as_nzcv() if FlagsUpdE else flags_e   # <- valor correcto

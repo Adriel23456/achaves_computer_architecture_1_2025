@@ -1,7 +1,6 @@
 class BinaryZeroExtend:
 
-    @staticmethod
-    def uxtb_32_to_32(input_val, show_bits=False):
+    def uxtb_32_to_32(self, input_val, show_bits=False):
         # Convertir input si es string binario
         if isinstance(input_val, str) and input_val.startswith('0b'):
             input_val = int(input_val, 2)
