@@ -360,6 +360,6 @@ class CPUView:
         #Paso 4:Actualizar diagrama, memorias y señales
         self.diagram.update_signals()
         self._load_initial_values()
-        self.controller.print_console("[CPU] Se ejecutó todo el programa")
+        self.controller.print_console("[CPU] Se ejecutó todo el programa restante")
         elapsed = time.time() - start_time
         self.controller.print_console(f"[TIMER] Ejecución duró {elapsed:.3f} segundos")
