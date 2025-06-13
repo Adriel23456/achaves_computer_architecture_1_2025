@@ -162,7 +162,11 @@ class PresentacionView:
             # Mensajes en consola
             self.console.printConsoleLn(f"[INFO] Memoria dinámica cargada: {os.path.basename(archivo)}")
             self.console.printConsoleLn(f"[INFO] Bytes escritos: {byte_len}")
-            self.console.printConsoleLn(f"[INFO] Bloques de 64 bits: {byte_len // 8}")
+            blocks = byte_len // 8
+            hex32 = f"0x{blocks & 0xFFFFFFFF:08X}"
+            self.console.printConsoleLn(f"[INFO] Bloques de 64 bits: {blocks}")
+            self.cpu_excel.write_w2(hex32)
+            self.cpu_excel.table.execute_all()
 
         except Exception as e:
             self.console.printConsoleLn(f"[ERROR] No se pudo cargar la memoria dinámica: {e}")
