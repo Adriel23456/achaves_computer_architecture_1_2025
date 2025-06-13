@@ -1,7 +1,7 @@
 # encoder.py
 from ProyGrupal.ISA.isa import OPCODES, encode_register, encode_special_field
 
-def encode_instruction(tokens):
+def encode_instruction(tokens, label_table=None, current_index= None):
     op = tokens[0][1]
 
     # =========================================
@@ -35,9 +35,9 @@ def encode_instruction(tokens):
         special = encode_special_field(tokens, op)
         Rd = encode_register(tokens[1][1])
         Rn = '0000'  # Rn nulo
-        Rm = encode_register(tokens[5][1])
+        Rm = encode_register(tokens[3][1])
         rest = '0' * (64 - 8 - 4 - 4 - 4 - 4)
-        return opcode + special + Rd + Rn + rest
+        return opcode + special + Rd + Rn + Rm + rest
 
     elif op in ['MOVI', 'MVNI']:
         opcode = OPCODES[op]
@@ -87,11 +87,20 @@ def encode_instruction(tokens):
     # =========================================
     # Bifurcaciones
     elif op in ['B', 'BEQ', 'BNE', 'BLT', 'BGT']:
-        opcode = OPCODES[op]
-        special = encode_special_field(tokens, op)
-        offset = 0
-        bin_offset = format(offset, '052b')
-        return opcode + special + bin_offset
+        opcode  = OPCODES[op]
+        special = encode_special_field(tokens, op)   # normalmente '0000'
+
+        label   = tokens[1][1]                       # .Loop, .Done…
+        if label not in label_table:
+            raise ValueError(f"Etiqueta no definida: {label}")
+
+        # current_index se pasa desde main en la 2ª pasada
+        offset  = label_table[label] - current_index - 1
+        off_52  = offset & ((1 << 52) - 1)           # complemento‑a‑2 en 52 bits
+        bin_off = format(off_52, '052b')
+
+        return opcode + special + bin_off
+
 
     # =========================================
     # Especiales
@@ -253,6 +262,287 @@ def encode_instruction(tokens):
             binaries.append(encode_instruction([('OPCODE', 'NOP')]))
         binaries.append(encode_instruction([('OPCODE', 'ADDS'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W8'), ('COMMA', ','), ('KWORD', f'{kword}.2')]))
         return binaries
+    
+    # =========================================
+    # Pseudoinstrucción TEAENC #5
+    elif op == 'TEAENC' and tokens[1][1] == '#5':
+        binaries = []
+        binaries.append(encode_instruction([
+            ('OPCODE', 'ADD'), ('REG', 'W9'), ('COMMA', ','), ('REG', 'W4'), ('COMMA', ','), ('REG', 'W6')
+        ]))
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+        binaries.append(encode_instruction([
+            ('OPCODE', 'EOR'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W9')
+        ]))
+        return binaries
+
+    # =========================================
+    # Pseudoinstrucción TEAENC #6
+    elif op == 'TEAENC' and tokens[1][1] == '#6':
+        binaries = []
+        kword = tokens[3][1] if len(tokens) > 3 else 'k0'  # Valor por defecto
+
+        binaries.append(encode_instruction([
+            ('OPCODE', 'LSRI'), ('REG', 'W9'), ('COMMA', ','), ('REG', 'W4'), ('COMMA', ','), ('IMM', '#5')
+        ]))
+
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        binaries.append(encode_instruction([
+            ('OPCODE', 'ADDS'), ('REG', 'W9'), ('COMMA', ','), ('REG', 'W9'), ('COMMA', ','), ('KWORD', f'{kword}.3')
+        ]))
+
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        binaries.append(encode_instruction([
+            ('OPCODE', 'EOR'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W9')
+        ]))
+
+        return binaries
+    
+    elif op == 'TEAENC' and tokens[1][1] == '#7':
+        binaries = []
+
+        # 4 NOPs
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # ADD W5, W3, W8
+        binaries.append(encode_instruction([
+            ('OPCODE', 'ADD'), ('REG', 'W5'), ('COMMA', ','), ('REG', 'W3'), ('COMMA', ','), ('REG', 'W8')
+        ]))
+
+        # SUBI W7, W7, #1
+        binaries.append(encode_instruction([
+            ('OPCODE', 'SUBI'), ('REG', 'W7'), ('COMMA', ','), ('REG', 'W7'), ('COMMA', ','), ('IMM', '#1')
+        ]))
+
+        return binaries
+    
+    # =========================================
+    # Pseudoinstrucción TEAD #1
+    elif op == 'TEAD' and tokens[1][1] == '#1':
+        binaries = []
+        kword = tokens[3][1] if len(tokens) > 3 else 'k0'  # Por defecto k0
+
+        # NOP x4
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # LSLI W8, W4, #4
+        binaries.append(encode_instruction([('OPCODE', 'LSLI'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W4'), ('COMMA', ','), ('IMM', '#4')]))
+
+        # NOP x4
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # ADDS W8, W8, k?.2
+        binaries.append(encode_instruction([('OPCODE', 'ADDS'), ('REG', 'W8'), ('COMMA', ','), ('REG', 'W8'), ('COMMA', ','), ('KWORD', f'{kword}.2')]))
+
+        # ADD W9, W4, W6
+        binaries.append(encode_instruction([('OPCODE', 'ADD'), ('REG', 'W9'), ('COMMA', ','), ('REG', 'W4'), ('COMMA', ','), ('REG', 'W6')]))
+
+        return binaries
+    
+    # =========================================
+    # Pseudoinstrucción TEAD #2
+    elif op == 'TEAD' and tokens[1][1] == '#2':
+        binaries = []
+        kword = tokens[3][1] if len(tokens) > 3 else 'k0'  # Por defecto k0
+
+        # NOP x4
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # EOR W8, W8, W9
+        binaries.append(encode_instruction([
+            ('OPCODE', 'EOR'),
+            ('REG', 'W8'), ('COMMA', ','),
+            ('REG', 'W8'), ('COMMA', ','),
+            ('REG', 'W9')
+        ]))
+
+        # LSRI W9, W4, #5
+        binaries.append(encode_instruction([
+            ('OPCODE', 'LSRI'),
+            ('REG', 'W9'), ('COMMA', ','),
+            ('REG', 'W4'), ('COMMA', ','),
+            ('IMM', '#5')
+        ]))
+
+        # NOP x4
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # ADDS W9, W9, k?.3
+        binaries.append(encode_instruction([
+            ('OPCODE', 'ADDS'),
+            ('REG', 'W9'), ('COMMA', ','),
+            ('REG', 'W9'), ('COMMA', ','),
+            ('KWORD', f'{kword}.3')
+        ]))
+
+        return binaries
+    
+    # =========================================
+    # Pseudoinstrucción TEAD #3
+    elif op == 'TEAD' and tokens[1][1] == '#3':
+        binaries = []
+        # 4 NOPs
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # EOR W8, W8, W9
+        binaries.append(encode_instruction([
+            ('OPCODE', 'EOR'),
+            ('REG', 'W8'), ('COMMA', ','),
+            ('REG', 'W8'), ('COMMA', ','),
+            ('REG', 'W9')
+        ]))
+
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # SUB W3, W3, W8
+        binaries.append(encode_instruction([
+            ('OPCODE', 'SUB'),
+            ('REG', 'W3'), ('COMMA', ','),
+            ('REG', 'W3'), ('COMMA', ','),
+            ('REG', 'W8')
+        ]))
+        return binaries
+    
+    # =========================================
+    # Pseudoinstrucción TEAD #4
+    elif op == 'TEAD' and tokens[1][1] == '#4':
+        binaries = []
+        kword = tokens[3][1] if len(tokens) > 3 else 'k0'  # Por defecto k0
+
+        # LSLI W8, W5, #4
+        binaries.append(encode_instruction([
+            ('OPCODE', 'LSLI'),
+            ('REG', 'W8'), ('COMMA', ','),
+            ('REG', 'W5'), ('COMMA', ','),
+            ('IMM', '#4')
+        ]))
+
+        # NOP x4
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # ADDS W8, W8, k?.0
+        binaries.append(encode_instruction([
+            ('OPCODE', 'ADDS'),
+            ('REG', 'W8'), ('COMMA', ','),
+            ('REG', 'W8'), ('COMMA', ','),
+            ('KWORD', f'{kword}.0')
+        ]))
+
+        # ADD W9, W3, W6
+        binaries.append(encode_instruction([('OPCODE', 'ADD'), ('REG', 'W9'), ('COMMA', ','), ('REG', 'W3'), ('COMMA', ','), ('REG', 'W6')]))
+        
+
+        return binaries
+    
+    # =========================================
+    # Pseudoinstrucción TEAD #5
+    elif op == 'TEAD' and tokens[1][1] == '#5':
+        binaries = []
+        kword = tokens[3][1] if len(tokens) > 3 else 'k0'  # Por defecto k0
+
+        # NOP x4
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # EOR W8, W8, W9
+        binaries.append(encode_instruction([
+            ('OPCODE', 'EOR'),
+            ('REG', 'W8'), ('COMMA', ','),
+            ('REG', 'W8'), ('COMMA', ','),
+            ('REG', 'W9')
+        ]))
+
+        # LSRI W9, W5, #5
+        binaries.append(encode_instruction([
+            ('OPCODE', 'LSRI'),
+            ('REG', 'W9'), ('COMMA', ','),
+            ('REG', 'W5'), ('COMMA', ','),
+            ('IMM', '#5')
+        ]))
+
+         # NOP x4
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # ADDS W9, W9, k?.1
+        binaries.append(encode_instruction([
+            ('OPCODE', 'ADDS'),
+            ('REG', 'W9'), ('COMMA', ','),
+            ('REG', 'W9'), ('COMMA', ','),
+            ('KWORD', f'{kword}.1')
+        ]))
+       
+
+        return binaries
+    
+    # =========================================
+    # Pseudoinstrucción TEAD #6
+    elif op == 'TEAD' and tokens[1][1] == '#6':
+        binaries = []
+        # 4 NOPs
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # EOR W8, W8, W9
+        binaries.append(encode_instruction([
+            ('OPCODE', 'EOR'),
+            ('REG', 'W8'), ('COMMA', ','),
+            ('REG', 'W8'), ('COMMA', ','),
+            ('REG', 'W9')
+        ]))
+
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
+
+        # SUB W4, W4, W8
+        binaries.append(encode_instruction([
+            ('OPCODE', 'SUB'),
+            ('REG', 'W4'), ('COMMA', ','),
+            ('REG', 'W4'), ('COMMA', ','),
+            ('REG', 'W8')
+        ]))
+        
+        return binaries
+    
+    # =========================================
+    # Pseudoinstrucción TEAD #7
+    elif op == 'TEAD' and tokens[1][1] == '#7':
+        binaries = []
+
+        # SUB W6, W6, D0
+        binaries.append(encode_instruction([
+            ('OPCODE', 'SUB'),
+            ('REG', 'W6'), ('COMMA', ','),
+            ('REG', 'W6'), ('COMMA', ','),
+            ('REG', 'D0')
+        ]))
+
+        # SUBI W7, W7, #1
+        binaries.append(encode_instruction([
+            ('OPCODE', 'SUBI'), ('REG', 'W7'), ('COMMA', ','), ('REG', 'W7'), ('COMMA', ','), ('IMM', '#1')
+        ]))
+        
+        return binaries
+    
+    
+    
+
+
+
+
 
 
     

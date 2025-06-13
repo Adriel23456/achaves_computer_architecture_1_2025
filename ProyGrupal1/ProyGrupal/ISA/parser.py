@@ -87,6 +87,7 @@ instruction_patterns = {
     ['OPCODE', 'IMM'],                     # TEAENC #2
     ['OPCODE', 'IMM', 'COMMA', 'KWORD']    # TEAENC #1, k1
 ],
+    'TEAD': [['OPCODE', 'IMM'], ['OPCODE', 'IMM', 'COMMA', 'KWORD']],
 
 
 }
