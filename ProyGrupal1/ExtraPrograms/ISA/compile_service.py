@@ -63,7 +63,7 @@ def compile_text_to_binary(asm_text, print_callback=None, base_dir=None):
                 instr_index += count
         except Exception as e:
             log(f"[COMPILADOR] Error en línea {lineno}: {str(e)}")
-            continue
+            return
     
     log(f"[COMPILADOR] Primera pasada completa. {len(label_table)} etiquetas encontradas")
     
@@ -89,6 +89,13 @@ def compile_text_to_binary(asm_text, print_callback=None, base_dir=None):
                     label_table=label_table,
                     current_index=pc
                 )
+                # Log información de branch para depuración
+                if tokens[1][1] in label_table:
+                    offset_inst = label_table[tokens[1][1]] - pc - 1
+                    offset_bytes = offset_inst * 8
+                    log(f"[COMPILADOR] Branch {tokens[0][1]} {tokens[1][1]}: "
+                        f"desde PC={pc} hacia {label_table[tokens[1][1]]}, "
+                        f"offset={offset_inst} instrucciones ({offset_bytes} bytes)")
             else:
                 binary = encode_instruction(tokens)
             

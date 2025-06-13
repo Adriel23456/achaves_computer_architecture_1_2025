@@ -1455,7 +1455,7 @@ class CPUInfoExcel:
                     return self._format_output(0, format_type, 64)
                 
                 # Convertir bytes a entero CON SIGNO (complemento a 2)
-                value = int.from_bytes(data, byteorder='little', signed=True)
+                value = int.from_bytes(data, byteorder='big', signed=True)
                 
             return self._format_output(value, format_type, 64)
             

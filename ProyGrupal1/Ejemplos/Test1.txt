@@ -1,3 +1,13 @@
 .Ldone:
-    ADD R1, R2, R1
+    ADDI d0, w4, #85362
+    MOVI R2, #-575
+    MOVI w2, #85362
+    ADD R3, R2, d0
+
+B .Ldone
+
+ADD R3, R2, R1
+ADD R3, R2, R1
+ADD R3, R2, R1
+.Lexample:
     ADD R3, R2, R1

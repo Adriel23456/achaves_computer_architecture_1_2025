@@ -2,13 +2,13 @@
     "window": {
         "width": 1440,
         "height": 900,
-        "x": 2089,
-        "y": 78,
+        "x": 2151,
+        "y": 87,
         "fullscreen": false
     },
     "theme": {
         "current": "dark",
-        "font_size": 14,
+        "font_size": 15,
         "font_family": "JetBrainsMono-Regular"
     },
     "sidebar": {

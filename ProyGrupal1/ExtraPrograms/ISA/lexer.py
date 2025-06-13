@@ -3,7 +3,7 @@ import re
 # Reglas de tokens, ordenadas correctamente (REG antes de OPCODE, etc.)
 token_specification = [
     ('LABEL',   r'\.\w+'),  # Etiquetas como .Linicio
-    ('REG',     r'[Rw]\d+'),  # Registros: R0-R15, w1-w9
+    ('REG', r'[RrWwDd]\d+'),  # Registros: R0-R15, w1-w9 y d0
     ('MEM',     r'[GDVP]\[[Rw]\d+(?:,\s*#?-?\d+)?\]'),  # G[R1], D[w3, #4], etc.
     ('KWORD', r'k\d+(?:\.\d+)?'),  # Claves criptográficas como k0.0
     ('PASS',    r'P\d+'),  # Para contraseñas: P1, P2, P3, etc.

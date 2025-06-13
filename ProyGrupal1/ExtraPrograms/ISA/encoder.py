@@ -89,13 +89,16 @@ def encode_instruction(tokens, label_table=None, current_index= None):
     elif op in ['B', 'BEQ', 'BNE', 'BLT', 'BGT']:
         opcode = OPCODES[op]
         special = encode_special_field(tokens, op)
-        offset = label_table.get(tokens[1][1], 0) - current_index - 1  # relativo
-        imm = format(offset & 0xFFFFFFFF, '032b')  # Offset (con signo, 32 bits)
+        # Calcular offset en instrucciones y multiplicar por 8 (bytes por instrucción)
+        offset_instructions = label_table.get(tokens[1][1], 0) - current_index
+        offset_bytes = offset_instructions * 8  # Cada instrucción es de 8 bytes
+        # Manejar valores con signo de 32 bits
+        if offset_bytes < 0:
+            offset_bytes = (1 << 32) + offset_bytes  # Complemento a 2 para negativos
+        imm = format(offset_bytes & 0xFFFFFFFF, '032b')  # Offset en bytes (32 bits)
         extra = '0' * 8  # Extra no relevante
         rd = rn = rm = '0000'
         return opcode + special + rd + rn + rm + imm + extra
-
-
 
     # =========================================
     # Especiales
@@ -108,34 +111,35 @@ def encode_instruction(tokens, label_table=None, current_index= None):
     # =========================================
     # Memoria
     elif op in ['LDR', 'STR', 'LDRB', 'STRB']:
-        opcode  = OPCODES[op]                      # 8 bits
-        special = encode_special_field(tokens, op) # 4 bits  (01X0)
+        opcode  = OPCODES[op]
 
-        # ----- Rd -----
-        Rd = encode_register(tokens[1][1])         # 4 bits
+        # --- analizar operando de memoria ---
+        mem_token   = tokens[3][1]                 # G[R1,#50] …
+        mem_type    = mem_token[0]                 # 'G' / 'D' / 'V' / 'P'
+        inside      = mem_token[mem_token.find('[')+1 : mem_token.find(']')]
+        parts       = [p.strip() for p in inside.split(',')]
 
-        # ----- Analizar operando de memoria -----
-        # Formato texto:  D[R8,#5]   G[R3]   P[w2,#-12] ...
-        mem_token = tokens[3][1]
-        mem_inside = mem_token[mem_token.find('[')+1 : mem_token.find(']')]
-        parts = [p.strip() for p in mem_inside.split(',')]
+        Ra_bin      = encode_register(parts[0])    # registro dentro de [ ]
+        offset      = int(parts[1].lstrip('#'), 0) if len(parts) > 1 else 0
+        imm32       = format(offset & 0xFFFFFFFF, '032b')
+        extra       = '00000000'
 
-        # Base register (Rn)
-        Rn = encode_register(parts[0])             # 4 bits
+        # --- decidir Rd / Rm según instrucción ---
+        if op in ['LDR', 'LDRB']:
+            Rd_bin  = encode_register(tokens[1][1])      # destino
+            Rm_bin  = '0000'                             # no se usa
+        else:  # STR / STRB
+            Rd_bin  = '0000'                             # no hay Rd
+            Rm_bin  = encode_register(tokens[1][1])      # fuente (Rb)
 
-        # Offset inmediato (32 bits con signo)
-        offset = int(parts[1].lstrip('#'), 0) if len(parts) > 1 else 0
-        imm32  = format(offset & 0xFFFFFFFF, '032b')
+        # --- SPECIAL ---
+        special = encode_special_field(tokens, op,
+                                   mem_type=mem_type,
+                                   Ra=parts[0],
+                                   Rb=tokens[1][1])
 
-        # ----- Rm no se utiliza -----
-        Rm = '0000'
-
-        # ----- Extra (8 bits) -----
-        extra = '00000000'
-
-        # Ensamblar: opcode(8) + special(4) + Rd(4) + Rn(4) + Rm(4)
-        #            + imm32(32) + extra(8)  = 64 bits
-        return opcode + special + Rd + Rn + Rm + imm32 + extra
+        # ensamblar
+        return opcode + special + Rd_bin + Ra_bin + Rm_bin + imm32 + extra
 
     # =========================================
     # PRINT
