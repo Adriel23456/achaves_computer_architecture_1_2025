@@ -1,11 +1,7 @@
-# authentication_process.py
 from datetime import datetime, timedelta
-#TODO: ALGUIEN QUE HAGA ACÁ EL IMPORT DEL CPU_INFO_EXCEL A MI NO ME DEJA POR ALGÚN MOTIVO
-
-
 
 class AuthenticationProcess:
-    _instance = None  # clase interna para asegurar singleton
+    _instance = None  # Singleton
 
     def __new__(cls):
         if cls._instance is None:
@@ -15,48 +11,29 @@ class AuthenticationProcess:
 
     def __init__(self):
         if self._initialized:
-            return  # evita re-inicializar
+            return
         self._initialized = True
         self.try_counter = 0
-        self.block_states = bytearray([0b00000000])
+        self.block_states = bytearray([0b00000000])  # Estado de bloques validados
         self.S1 = 0
         self.S2 = 0
-        self.sesion_activa_desde = None
-
-        # TODO: Cargar estado desde Excel
-        self.cargar_estado_local()
+        self.sesion_activa_desde = None  # hora de bloqueo si aplica
 
 
-    def cargar_estado_local(self):
-        value = cpu.table.read_immediate(121, 17)  # Lee R121
-        try:
-            valor = int(value)
-            self.block_states = bytearray([valor])
-            print(f"Estado cargado: {bin(valor)}")
-        except Exception as e:
-            print(f"Error al cargar estado local: {e}")
-            self.block_states = bytearray([0b00000000])  # valor por defecto
+    def set_block_states(self, value: int):
+        self.block_states = bytearray([value])
+        print(f"[SET] Estado de bloques actualizado: {bin(value)}")
 
-    def guardar_estado_local(self):
-        # block_states es un bytearray con 1 byte, convertimos a entero
-        valor = self.block_states[0]
-        # Guardamos el entero en el registro R121 (registro 121, posición 17)
-        cpu.table.write(121, 17, valor)  # guardamos como el 0b del número entero
+    def get_block_states(self) -> int:
+        return self.block_states[0]
 
-        cpu.table.execute_all() #CUIDADO CON ESTO NO SÉ SI ESTÁ PETANDO EL EXCEL
+    def set_sesion_activa_desde(self, hora: datetime):
+        self.sesion_activa_desde = hora
+        print(f"[SET] Hora de sesión activa desde: {hora}")
 
-        print(f"Estado guardado: {bin(valor)}")
+    def get_sesion_activa_desde(self) -> datetime:
+        return self.sesion_activa_desde
 
-    def guardar_hora(self, hora):
-        hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        parametro = f"'{hora}'"
-        cpu.table.write(121, 17, parametro) #ESCRIBE EN R120
-
-        cpu.table.execute_all()  # CUIDADO CON ESTO NO SÉ SI ESTÁ PETANDO EL EXCEL
-
-    def obtener_hora(self):
-        string, value = cpu.table.read_immediate(121, 17)  # LEE R120
-        return  datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
 
     def try_reset(self):
         self.try_counter = 0
@@ -84,21 +61,19 @@ class AuthenticationProcess:
         now = datetime.now()
 
         if self.try_counter >= 15:
-            if self.obtener_hora() is None:
-                self.guardar_hora(now)
-                self.guardar_estado_local()
+            if self.get_sesion_activa_desde() is None:
+                self.set_sesion_activa_desde(now)
                 print("Acceso bloqueado por exceso de intentos. Temporizador iniciado.")
                 return self.S1, self.S2
 
-            if now - self.obtener_hora() < timedelta(minutes=10):
-                print(f"Aún bloqueado. Intenta más tarde.")
+            if now - self.get_sesion_activa_desde() < timedelta(minutes=10):
+                print("Aún bloqueado. Intenta más tarde.")
                 return self.S1, self.S2
             else:
                 print("Bloqueo expirado. Reiniciando.")
                 self.try_reset()
-                self.guardar_hora(None)
-                self.block_states = bytearray([0b00000000])
-                self.guardar_estado_local()
+                self.set_sesion_activa_desde(None)
+                self.set_block_states(0b00000000)
 
         if LogOutE[0] == 1:
             self.full_reset()
@@ -109,8 +84,7 @@ class AuthenticationProcess:
             return self.S1, self.S2
 
         if self.try_counter >= 15:
-            self.guardar_hora(now)
-            self.guardar_estado_local()
+            self.set_sesion_activa_desde(now)
             print("Máximo de intentos alcanzado. Bloqueo.")
             return self.S1, self.S2
 
@@ -120,16 +94,14 @@ class AuthenticationProcess:
         flag_zero = (ALUFlagsOut[0] & 0b0100) != 0
         if not flag_zero:
             self.try_counter += 1
-            self.guardar_estado_local()
             print("Flag ZERO no está activa. Fallo de verificación.")
             return self.S1, self.S2
 
         print(f"Verificación exitosa en bloque {bloque_index}")
         self.actualizar_estado_bloque(bloque_index)
-        self.guardar_estado_local()
 
         if self.todos_los_bloques_verificados():
-            print(" Todos los bloques han sido validados exitosamente.")
+            print("Todos los bloques han sido validados exitosamente.")
             self.S1 = 1
             self.S2 = 1
 
