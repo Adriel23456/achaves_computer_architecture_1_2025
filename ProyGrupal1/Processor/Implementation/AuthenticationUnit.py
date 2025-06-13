@@ -1,5 +1,8 @@
 # authentication_process.py
 from datetime import datetime, timedelta
+#TODO: ALGUIEN QUE HAGA ACÁ EL IMPORT DEL CPU_INFO_EXCEL A MI NO ME DEJA POR ALGÚN MOTIVO
+
+
 
 class AuthenticationProcess:
     _instance = None  # clase interna para asegurar singleton
@@ -14,20 +17,46 @@ class AuthenticationProcess:
         if self._initialized:
             return  # evita re-inicializar
         self._initialized = True
-
         self.try_counter = 0
-        self.bloqueado_desde = None
         self.block_states = bytearray([0b00000000])
         self.S1 = 0
         self.S2 = 0
         self.sesion_activa_desde = None
 
         # TODO: Cargar estado desde Excel
-        # self.cargar_estado_local()
+        self.cargar_estado_local()
 
-    # Todos los métodos que ya tienes:
+
+    def cargar_estado_local(self):
+        value = cpu.table.read_immediate(121, 17)  # Lee R121
+        try:
+            valor = int(value)
+            self.block_states = bytearray([valor])
+            print(f"Estado cargado: {bin(valor)}")
+        except Exception as e:
+            print(f"Error al cargar estado local: {e}")
+            self.block_states = bytearray([0b00000000])  # valor por defecto
+
     def guardar_estado_local(self):
-        pass  # TODO: Guardar a Excel
+        # block_states es un bytearray con 1 byte, convertimos a entero
+        valor = self.block_states[0]
+        # Guardamos el entero en el registro R121 (registro 121, posición 17)
+        cpu.table.write(121, 17, valor)  # guardamos como el 0b del número entero
+
+        cpu.table.execute_all() #CUIDADO CON ESTO NO SÉ SI ESTÁ PETANDO EL EXCEL
+
+        print(f"Estado guardado: {bin(valor)}")
+
+    def guardar_hora(self, hora):
+        hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        parametro = f"'{hora}'"
+        cpu.table.write(121, 17, parametro) #ESCRIBE EN R120
+
+        cpu.table.execute_all()  # CUIDADO CON ESTO NO SÉ SI ESTÁ PETANDO EL EXCEL
+
+    def obtener_hora(self):
+        string, value = cpu.table.read_immediate(121, 17)  # LEE R120
+        return  datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
 
     def try_reset(self):
         self.try_counter = 0
@@ -55,19 +84,19 @@ class AuthenticationProcess:
         now = datetime.now()
 
         if self.try_counter >= 15:
-            if self.bloqueado_desde is None:
-                self.bloqueado_desde = now
+            if self.obtener_hora() is None:
+                self.guardar_hora(now)
                 self.guardar_estado_local()
                 print("Acceso bloqueado por exceso de intentos. Temporizador iniciado.")
                 return self.S1, self.S2
 
-            if now - self.bloqueado_desde < timedelta(minutes=10):
+            if now - self.obtener_hora() < timedelta(minutes=10):
                 print(f"Aún bloqueado. Intenta más tarde.")
                 return self.S1, self.S2
             else:
                 print("Bloqueo expirado. Reiniciando.")
                 self.try_reset()
-                self.bloqueado_desde = None
+                self.guardar_hora(None)
                 self.block_states = bytearray([0b00000000])
                 self.guardar_estado_local()
 
@@ -80,7 +109,7 @@ class AuthenticationProcess:
             return self.S1, self.S2
 
         if self.try_counter >= 15:
-            self.bloqueado_desde = now
+            self.guardar_hora(now)
             self.guardar_estado_local()
             print("Máximo de intentos alcanzado. Bloqueo.")
             return self.S1, self.S2

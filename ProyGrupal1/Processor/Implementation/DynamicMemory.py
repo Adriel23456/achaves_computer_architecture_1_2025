@@ -4,6 +4,10 @@ from typing import List, Optional
 from Flags import Flags
 
 
+#TODO: ALGUIEN QUE HAGA ACÁ EL IMPORT DEL CPU_INFO_EXCEL A MI NO ME DEJA POR ALGÚN MOTIVO
+
+
+
 def load_Memory_Size():
     return 64
 #TODO >>> no entiendo bien como estamos cargando cosas del excel aun, para cuando este hacerlo aqui y que asigne el valor a los parametro que esta cosa ocupa

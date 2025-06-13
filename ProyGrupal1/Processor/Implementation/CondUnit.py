@@ -41,23 +41,10 @@ class CondUnit:
 
     def _handle_branching(self, BranchOpE: int, nzcv: int):
         #verifica las condiciones para el manejor de branches junto con sus flags
-        if BranchOpE == 0b000:  # B
-            self.CondExE = 0b1
-        elif BranchOpE == 0b001:  # BEQ (Z=1)
-            self.CondExE = (nzcv >> 2) & 0b1  # Z flag
-        elif BranchOpE == 0b010:  # BNE (Z=0)
-            self.CondExE = ((nzcv >> 2) & 0b1) ^ 0b1  # Inverted Z
-        elif BranchOpE == 0b011:  # BLT (N!=V)
-            n_flag = (nzcv >> 3) & 0b1
-            v_flag = nzcv & 0b1
-            self.CondExE = n_flag ^ v_flag
-        elif BranchOpE == 0b100:  # BGT (Z=0 N=V)
-            z_flag = (nzcv >> 2) & 0b1
-            n_flag = (nzcv >> 3) & 0b1
-            v_flag = nzcv & 0b1
-            self.CondExE = (z_flag ^ 0b1) & (n_flag ^ v_flag ^ 0b1)
-        else:
+        if BranchOpE == 0b111:
             self.CondExE = 0b0
+        else:
+            self.CondExE = 0b1
 
     def _handle_security(self, LogOutE: int, ComSE: int,
                          LoginBlockE: int, ALUFlagsOut: int):
