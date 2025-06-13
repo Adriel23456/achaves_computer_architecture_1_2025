@@ -41,7 +41,8 @@ class Pipeline:
 
     def fetch(self):
         # No sobreescribimos si ya hay una instrucción pendiente en IF/ID
-        if self.if_id is not None:
+        if self.if_id is not None and self.next_if_id is not None:
+            print("[STALL] FETCH detenido: IF/ID aún en uso.")
             return
 
         # Obtener dirección actual del Program Counter
@@ -101,6 +102,8 @@ class Pipeline:
         else:
             A_intermedio, _ = self.safe_register_file.read(ar1, 0)
 
+        
+
         # Luego: si BranchE está activo, se usa PCF_D en lugar de RD1
         if ctrl.BranchE:
             A = pc  # ← MUX que selecciona PCF_D
@@ -121,14 +124,14 @@ class Pipeline:
             try:
                 B_intermedio = self.vault_memory.read(ar2)
             except PermissionError as e:
-                print(f"[DECODE] ⚠️ Acceso bloqueado a Vault: {e}")
+                print(f"[DECODE] Acceso bloqueado a Vault: {e}")
                 raise
 
         elif src_b == 0b11:                # LoginMemory
             try:
                 B_intermedio = self.login_memory.read(ar2, L_signal)
             except PermissionError as e:
-                print(f"[DECODE] ⚠️ Acceso bloqueado a LoginMem: {e}")
+                print(f"[DECODE] Acceso bloqueado a LoginMem: {e}")
                 raise
         else:
             B_intermedio = 0         
@@ -170,6 +173,7 @@ class Pipeline:
                 "ALUSrc": ctrl.ALUSrc,
             },
             "FlagsE": flags_nzcv,
+            "opcode": op,
 
         }
         print(f"ID : instr=0x{instr:016X}  op={op:02X} sp={special:01X} rd={rd} ar1={ar1} ar2={ar2} imm={imm32:#010X}")
@@ -229,7 +233,10 @@ class Pipeline:
 
         # Flags para depuración
         n, z, c, v = alu_flags_out
+        if (self.id_ex.get("opcode") == 0x2F):    
+            self.halt_requested = True
         print(f"EX  | ALUOut={result:#010X} | Flags[NZCV]={n}{z}{c}{v}")
+        print(f"[ALU] code={ctrl["ALUSrc"]:06b} A={A:08X} B={B:08X} => {result:08X} NZCV={alu_flags_out}")
 
 
     def mem(self):
@@ -303,12 +310,13 @@ class Pipeline:
             PrinterUnit.print_ascii(alu_out)
         elif ctrl["PrintEn"] == 0b10:
             PrinterUnit.print_binary(alu_out)
-        elif ctrl["PrintEn"] == 0b11:
-            PrinterUnit.do_nothing()
+
 
         # === Si corresponde salto condicional, actualizar PC ===
         self.pc.result_w = alu_out           # dirección calculada en EX/MEM
         self.pc.pcsrc_w = ctrl["PCSrc"]  # ya AND-eado con CondExE
+        print(f"WB | rd={rd} <- {alu_out:#X}")
+
 
 
     def step(self):
@@ -348,6 +356,12 @@ class Pipeline:
 
         # === 5. Actualizar contador de ciclos ===
         self.clock_cycle += 1
+        # 6. Halt por SWI
+        if getattr(self, "halt_requested", False):
+            print("### SWI: ejecución detenida ###")
+            # Vaciar registros para que run_all detecte pipeline vacío
+            self.if_id = self.id_ex = self.ex_mem = self.mem_wb = None
+            self.next_if_id = self.next_id_ex = self.next_ex_mem = self.next_mem_wb = None
 
 
     def flush_pipeline(self):

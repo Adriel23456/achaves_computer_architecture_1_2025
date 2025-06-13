@@ -164,6 +164,7 @@ class ControlUnit:
 
         # 4) NOT final a FlagsUpd
         self.FlagsUpd ^= 1
+        print(f"[CU] op={op:02X} spec={special:01X} ALUSrc={self.ALUSrc:06b}")
 
     # ------------ patrones Special ---------------------------------
     def _apply_pattern(self, spec: int, pat: str, op: int):

@@ -42,6 +42,7 @@ class CondUnit:
 
         self._handle_branching(BranchOpE, nzcv)                # pasa nzcv
         self._handle_security(LogOutE, ComSE, LoginBlockE, ALUFlagsOut)
+        print(f"[COND] BranchOp={BranchOpE:03b} CondExE={self.CondExE}")
 
     def _handle_branching(self, BranchOpE: int, nzcv: int):
         #verifica las condiciones para el manejor de branches junto con sus flags

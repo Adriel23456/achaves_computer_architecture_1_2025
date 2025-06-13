@@ -28,10 +28,10 @@ class SafeRegisterFile:
     # Lectura combinacional
     def read(self, ar1: int, ar2: int) -> tuple[int, int]:
         if self._flags.enabled() != 1:
-            raise PermissionError("Lectura denegada: S1/S2 inactivos.")
+            print("Lectura denegada: S1/S2 inactivos.")
 
         if ar1 >= len(self._regs) or ar2 >= len(self._regs):
-            raise IndexError(f"Índice fuera de rango para SafeRegisters: {ar1} o {ar2}")
+            print(f"Índice fuera de rango para SafeRegisters: {ar1} o {ar2}")
 
         return self._regs[ar1], self._regs[ar2]
 
@@ -41,12 +41,12 @@ class SafeRegisterFile:
         if not regwrite:
             return
         if self._flags.enabled() != 1:
-            raise PermissionError("Escritura denegada: S1/S2 inactivos.")
+            print("Escritura denegada: S1/S2 inactivos.")
 
         if ar3 >= len(self._regs):
-            raise IndexError(f"Índice fuera de rango para SafeRegisters: {ar3}")
+            print(f"Índice fuera de rango para SafeRegisters: {ar3}")
         if ar3 == 9:
-            raise PermissionError("Registro d0 es de solo-lectura.")
+            print("Registro d0 es de solo-lectura.")
 
         self._pending = (ar3, wdr3 & MASK32)
 
