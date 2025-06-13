@@ -205,8 +205,6 @@ AUTHCMP                 ; Comparar autenticación
 ; ==============================================
 ; INSTRUCCIONES TEA
 ; ==============================================
-TEA #10, #20            ; TEA con dos inmediatos
-TEA #5, #15             ; TEA variante
 TEA #0, #255            ; TEA casos extremos
 
 ; ==============================================
@@ -234,3 +232,19 @@ MOVI R0, #4             ; Marcar como mayor
 
 .end_program:
 SWI                     ; Terminar programa
+
+TEAENC #1, k1
+TEAENC #2
+TEAENC #3, k1
+TEAENC #4, k1
+TEAENC #5
+TEAENC #6, k1
+TEAENC #7
+
+TEAD #1, k2
+TEAD #2, k3
+TEAD #3
+TEAD #4, k0
+TEAD #5, k2
+TEAD #6
+TEAD #7

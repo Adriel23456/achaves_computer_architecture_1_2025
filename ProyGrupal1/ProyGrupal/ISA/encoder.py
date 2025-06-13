@@ -87,19 +87,14 @@ def encode_instruction(tokens, label_table=None, current_index= None):
     # =========================================
     # Bifurcaciones
     elif op in ['B', 'BEQ', 'BNE', 'BLT', 'BGT']:
-        opcode  = OPCODES[op]
-        special = encode_special_field(tokens, op)   # normalmente '0000'
+        opcode = OPCODES[op]
+        special = encode_special_field(tokens, op)
+        offset = label_table.get(tokens[1][1], 0) - current_index - 1  # relativo
+        imm = format(offset & 0xFFFFFFFF, '032b')  # Offset (con signo, 32 bits)
+        extra = '0' * 8  # Extra no relevante
+        rd = rn = rm = '0000'
+        return opcode + special + rd + rn + rm + imm + extra
 
-        label   = tokens[1][1]                       # .Loop, .Done…
-        if label not in label_table:
-            raise ValueError(f"Etiqueta no definida: {label}")
-
-        # current_index se pasa desde main en la 2ª pasada
-        offset  = label_table[label] - current_index - 1
-        off_52  = offset & ((1 << 52) - 1)           # complemento‑a‑2 en 52 bits
-        bin_off = format(off_52, '052b')
-
-        return opcode + special + bin_off
 
 
     # =========================================
@@ -113,37 +108,59 @@ def encode_instruction(tokens, label_table=None, current_index= None):
     # =========================================
     # Memoria
     elif op in ['LDR', 'STR', 'LDRB', 'STRB']:
-        opcode = OPCODES[op]
-        special = encode_special_field(tokens, op)
-        Rd = encode_register(tokens[1][1])
-        mem = tokens[3][1]
-        mem_type = mem[0]  # G, D, V, P
-        mem_map = {'G': '00', 'D': '01', 'V': '10', 'P': '11'}
-        mem_type_bin = mem_map[mem_type]
-        inside = mem[mem.find('[')+1:mem.find(']')]
-        parts = [p.strip() for p in inside.split(',')]
-        Rn = encode_register(parts[0])
-        offset = int(parts[1].replace('#', ''), 0) if len(parts) > 1 else 0
-        bin_offset = format(offset & 0xFFFFFFFF, '032b')
-        rest = '0' * (64 - 8 - 4 - 4 - 2 - 4 - 32)
-        return opcode + special + Rd + mem_type_bin + Rn + bin_offset + rest
+        opcode  = OPCODES[op]                      # 8 bits
+        special = encode_special_field(tokens, op) # 4 bits  (01X0)
+
+        # ----- Rd -----
+        Rd = encode_register(tokens[1][1])         # 4 bits
+
+        # ----- Analizar operando de memoria -----
+        # Formato texto:  D[R8,#5]   G[R3]   P[w2,#-12] ...
+        mem_token = tokens[3][1]
+        mem_inside = mem_token[mem_token.find('[')+1 : mem_token.find(']')]
+        parts = [p.strip() for p in mem_inside.split(',')]
+
+        # Base register (Rn)
+        Rn = encode_register(parts[0])             # 4 bits
+
+        # Offset inmediato (32 bits con signo)
+        offset = int(parts[1].lstrip('#'), 0) if len(parts) > 1 else 0
+        imm32  = format(offset & 0xFFFFFFFF, '032b')
+
+        # ----- Rm no se utiliza -----
+        Rm = '0000'
+
+        # ----- Extra (8 bits) -----
+        extra = '00000000'
+
+        # Ensamblar: opcode(8) + special(4) + Rd(4) + Rn(4) + Rm(4)
+        #            + imm32(32) + extra(8)  = 64 bits
+        return opcode + special + Rd + Rn + Rm + imm32 + extra
 
     # =========================================
     # PRINT
     elif op in ['PRINTI', 'PRINTS', 'PRINTB']:
-        opcode = OPCODES[op]
-        special = encode_special_field(tokens, op)
-        mem = tokens[1][1]
-        mem_type = mem[0]
-        mem_map = {'G': '00', 'D': '01', 'V': '10', 'P': '11'}
-        mem_type_bin = mem_map[mem_type]
-        inside = mem[mem.find('[')+1:mem.find(']')]
-        parts = [p.strip() for p in inside.split(',')]
-        Rn = encode_register(parts[0])
-        offset = int(parts[1].replace('#', ''), 0)
-        bin_offset = format(offset & 0xFFFFFFFF, '032b')
-        rest = '0' * (64 - 8 - 4 - 2 - 4 - 32)
-        return opcode + special + mem_type_bin + Rn + bin_offset + rest
+        opcode  = OPCODES[op]                      # 8 bits
+        special = encode_special_field(tokens, op) # 4 bits (X1X0)
+
+        # Operando de memoria «G[R6,#1]» …
+        mem      = tokens[1][1]
+        mem_type = mem[0]                          # G/D/V/P
+        inside   = mem[mem.find('[')+1 : mem.find(']')]
+        parts    = [p.strip() for p in inside.split(',')]
+
+        Rn       = encode_register(parts[0])       # 4 bits
+        offset   = int(parts[1].lstrip('#'), 0)
+        imm32    = format(offset & 0xFFFFFFFF, '032b')
+
+        # Campos que no se usan:
+        Rd = '0000'
+        Rm = '0000'
+        extra = '00000000'
+
+        # 8+4+4+4+4+32+8 = 64 bits
+        return opcode + special + Rd + Rn + Rm + imm32 + extra
+
 
     # =========================================
     # Seguridad / cifrado

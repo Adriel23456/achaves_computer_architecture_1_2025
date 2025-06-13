@@ -99,7 +99,6 @@ def encode_register(regname):
     elif regname.startswith('d'):
         number = int(regname[1:])
         return format(number + 9, '04b')  # ajusta según codificación real
-        return format(number, '04b')
     elif regname.startswith('k'):
         # Maneja claves del tipo k0.0, k1.3, etc.
         clave, word = map(int, regname[1:].split('.'))
@@ -126,18 +125,26 @@ def encode_special_field(tokens, op):
         return '0100'
 
     if op in ['LDR', 'STR', 'LDRB', 'STRB']:
-        # General Memory (G/V): 01X0, Dinamic Memory (D/P): 01X1
-        mem = tokens[3][1] if len(tokens) > 3 else ''
-        mem_type = mem[0] if mem else 'G'
-        mem_bit = '1' if mem_type in ['D', 'P'] else '0'
-        return '01' + '0' + mem_bit
+        # Ejemplo de operando mem:  D[R8,#5]  ó  G[R2]
+        mem = tokens[3][1] if len(tokens) > 3 else 'G[0]'
+        mem_type = mem[0]                 # 'G', 'D', 'V', 'P'
+        x_bit = '1' if mem_type in ['D', 'P'] else '0'  # 1 = Dinamic/Password
+        return '01' + x_bit + '0'
 
     if op in ['PRINTI', 'PRINTS', 'PRINTB']:
-        # General Memory: X1X0, Dinamic Memory: X1X1
-        mem = tokens[1][1] if len(tokens) > 1 else ''
-        mem_type = mem[0] if mem else 'G'
-        mem_bit = '1' if mem_type in ['D', 'P'] else '0'
-        return '010' + mem_bit
+        mem = tokens[1][1]
+        mem_type = mem[0]
+
+        # Mapeo a los 2 bits (bit54‑bit53)
+        mem_map = {
+            'G': '00',   # General
+            'V': '01',   # Vault
+            'D': '10',   # Dynamic
+            'P': '11'    # Password
+        }
+        sel = mem_map.get(mem_type, '00')
+        return '0' + sel + '0'  # bit55=0, bit52=0
+
 
     # Fallback genérico basado en análisis de operandos
     special_bits = ['0', '0', '0', '0']
