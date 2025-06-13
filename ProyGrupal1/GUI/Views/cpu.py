@@ -342,7 +342,7 @@ class CPUView:
         
         #Paso 2: Ejecutar hasta que no existan mas instrucciones o sea, si es un SWI en writeback entonces no hacer nada!
         if hasattr(self, 'cpu_instance'):
-            max_cycles = 100000
+            max_cycles = 1000
             for cycle in range(max_cycles):
                 # Verificar si hay SWI en alguna etapa
                 has_swi = False
