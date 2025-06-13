@@ -1,8 +1,7 @@
-# authentication_process.py
 from datetime import datetime, timedelta
 
 class AuthenticationProcess:
-    _instance = None  # clase interna para asegurar singleton
+    _instance = None  # Singleton
 
     def __new__(cls):
         if cls._instance is None:
@@ -12,22 +11,29 @@ class AuthenticationProcess:
 
     def __init__(self):
         if self._initialized:
-            return  # evita re-inicializar
+            return
         self._initialized = True
-
         self.try_counter = 0
-        self.bloqueado_desde = None
-        self.block_states = bytearray([0b00000000])
+        self.block_states = bytearray([0b00000000])  # Estado de bloques validados
         self.S1 = 0
         self.S2 = 0
-        self.sesion_activa_desde = None
+        self.sesion_activa_desde = None  # hora de bloqueo si aplica
 
-        # TODO: Cargar estado desde Excel
-        # self.cargar_estado_local()
 
-    # Todos los métodos que ya tienes:
-    def guardar_estado_local(self):
-        pass  # TODO: Guardar a Excel
+    def set_block_states(self, value: int):
+        self.block_states = bytearray([value])
+        print(f"[SET] Estado de bloques actualizado: {bin(value)}")
+
+    def get_block_states(self) -> int:
+        return self.block_states[0]
+
+    def set_sesion_activa_desde(self, hora: datetime):
+        self.sesion_activa_desde = hora
+        print(f"[SET] Hora de sesión activa desde: {hora}")
+
+    def get_sesion_activa_desde(self) -> datetime:
+        return self.sesion_activa_desde
+
 
     def try_reset(self):
         self.try_counter = 0
@@ -55,21 +61,19 @@ class AuthenticationProcess:
         now = datetime.now()
 
         if self.try_counter >= 15:
-            if self.bloqueado_desde is None:
-                self.bloqueado_desde = now
-                self.guardar_estado_local()
+            if self.get_sesion_activa_desde() is None:
+                self.set_sesion_activa_desde(now)
                 print("Acceso bloqueado por exceso de intentos. Temporizador iniciado.")
                 return self.S1, self.S2
 
-            if now - self.bloqueado_desde < timedelta(minutes=10):
-                print(f"Aún bloqueado. Intenta más tarde.")
+            if now - self.get_sesion_activa_desde() < timedelta(minutes=10):
+                print("Aún bloqueado. Intenta más tarde.")
                 return self.S1, self.S2
             else:
                 print("Bloqueo expirado. Reiniciando.")
                 self.try_reset()
-                self.bloqueado_desde = None
-                self.block_states = bytearray([0b00000000])
-                self.guardar_estado_local()
+                self.set_sesion_activa_desde(None)
+                self.set_block_states(0b00000000)
 
         if LogOutE[0] == 1:
             self.full_reset()
@@ -80,8 +84,7 @@ class AuthenticationProcess:
             return self.S1, self.S2
 
         if self.try_counter >= 15:
-            self.bloqueado_desde = now
-            self.guardar_estado_local()
+            self.set_sesion_activa_desde(now)
             print("Máximo de intentos alcanzado. Bloqueo.")
             return self.S1, self.S2
 
@@ -91,16 +94,14 @@ class AuthenticationProcess:
         flag_zero = (ALUFlagsOut[0] & 0b0100) != 0
         if not flag_zero:
             self.try_counter += 1
-            self.guardar_estado_local()
             print("Flag ZERO no está activa. Fallo de verificación.")
             return self.S1, self.S2
 
         print(f"Verificación exitosa en bloque {bloque_index}")
         self.actualizar_estado_bloque(bloque_index)
-        self.guardar_estado_local()
 
         if self.todos_los_bloques_verificados():
-            print(" Todos los bloques han sido validados exitosamente.")
+            print("Todos los bloques han sido validados exitosamente.")
             self.S1 = 1
             self.S2 = 1
 
