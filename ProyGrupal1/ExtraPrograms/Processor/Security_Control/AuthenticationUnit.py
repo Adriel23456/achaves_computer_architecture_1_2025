@@ -102,9 +102,15 @@ class AuthenticationProcess:
             self.S2 = 1
 
         return self.S1, self.S2
+    
+    def set_attempts(self, attempts: int):
+        """Establece el contador de intentos."""
+        self.try_counter = attempts & 0xF
+        print(f"[SET] Intentos establecidos: {self.try_counter}")
 
-
-
+    def get_attempts(self) -> int:
+        """Obtiene el contador de intentos actual."""
+        return self.try_counter
 
 #sf = SeguridadFlags()
 #for i in range(8):

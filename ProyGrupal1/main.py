@@ -5,6 +5,7 @@ main.py - Punto de entrada principal de la aplicación
 import os
 import sys
 import json
+import struct
 from pathlib import Path
 
 # Configurar el directorio base de la aplicación

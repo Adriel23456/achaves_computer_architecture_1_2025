@@ -1,17 +1,17 @@
-from PipeLine import Pipeline
-from ProgramCounter import ProgramCounter
-from InstructionMemory import InstructionMemory
-from RegisterFile import RegisterFile
-from SafeRegisters import SafeRegisterFile
-from DataMemory import DataMemory
-from DynamicMemory import DynamicMemory
-from VaultMemory import VaultMemory
-from LoginMemory import LoginMemory
-from ALU import ALU
-from Flags import Flags
-from ControlUnit import ControlUnit
-from CondUnit import CondUnit
-from Extend import BinaryZeroExtend
+from ExtraPrograms.Processor.Implementation.PipeLine import Pipeline
+from ExtraPrograms.Processor.Implementation.ProgramCounter import ProgramCounter
+from ExtraPrograms.Processor.Implementation.InstructionMemory import InstructionMemory
+from ExtraPrograms.Processor.Implementation.RegisterFile import RegisterFile
+from ExtraPrograms.Processor.Implementation.SafeRegisters import SafeRegisterFile
+from ExtraPrograms.Processor.Implementation.DataMemory import DataMemory
+from ExtraPrograms.Processor.Implementation.DynamicMemory import DynamicMemory
+from ExtraPrograms.Processor.Implementation.VaultMemory import VaultMemory
+from ExtraPrograms.Processor.Implementation.LoginMemory import LoginMemory
+from ExtraPrograms.Processor.Implementation.ALU import ALU
+from ExtraPrograms.Processor.Implementation.Flags import Flags
+from ExtraPrograms.Processor.Implementation.ControlUnit import ControlUnit
+from ExtraPrograms.Processor.Implementation.CondUnit import CondUnit
+from ExtraPrograms.Processor.Implementation.Extend import BinaryZeroExtend
 
 class Procesador:
     def __init__(self):
@@ -79,3 +79,12 @@ class Procesador:
                 break
         else:
             print("Límite de ciclos alcanzado sin completar ejecución.")
+            
+    def set_state_from_external(self, state_dict):
+        """Permite cargar un estado completo desde fuente externa."""
+        if 'pc' in state_dict:
+            self.pc._pc = state_dict['pc']
+        if 'registers' in state_dict:
+            for i, val in enumerate(state_dict['registers']):
+                if i < 16:
+                    self.register_file.regs[i] = val

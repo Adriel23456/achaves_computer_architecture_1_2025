@@ -5,6 +5,9 @@ import tkinter as tk
 from GUI.Components.styled_button      import StyledButton
 from GUI.Components.memory_table_view  import MemoryTableView
 from GUI.Components.signals_table_view import SignalsTableView
+import struct
+from ExtraPrograms.Processor.Implementation.Processor import Procesador
+from ExtraPrograms.Processor.Security_Control.AuthenticationUnit import AuthenticationProcess
 
 class CPUView:
     # ──────────────────────────────────────────────────────────────────────────
@@ -295,10 +298,19 @@ class CPUView:
         self.cpu_excel.table.execute_all()
     
         #Paso 2: Cargar memorias y señales, desde el excel, al ejecutador
+        self._load_from_excel_to_executor()
         
         #Paso 3: Ejecutar SOLO 1 ciclo, pero si es un SWI en writeback entonces no hacer nada!
+        if hasattr(self, 'cpu_instance'):
+            # Verificar si hay SWI en writeback
+            _, wb_instr = self.cpu_excel.read_state_writeBack()
+            if wb_instr and "SWI" not in str(wb_instr):
+                self.cpu_instance.pipeline.step()
+            else:
+                self.controller.print_console("[CPU] SWI detectado en WriteBack, ciclo omitido")
         
         #Paso 4: Cargar todas las señales y memorias de vuelta al excel
+        self._save_from_executor_to_excel()
         
         #Paso 5:Actualizar diagrama, memorias y señales
         self.diagram.update_signals()
@@ -326,10 +338,40 @@ class CPUView:
             return
         
         #Paso 1: Cargar memorias y señales, desde el excel, al ejecutador
+        self._load_from_excel_to_executor()
         
         #Paso 2: Ejecutar hasta que no existan mas instrucciones o sea, si es un SWI en writeback entonces no hacer nada!
+        if hasattr(self, 'cpu_instance'):
+            max_cycles = 100000
+            for cycle in range(max_cycles):
+                # Verificar si hay SWI en alguna etapa
+                has_swi = False
+                for state_reader in ['read_state_fetch', 'read_state_decode', 
+                                'read_state_execute', 'read_state_memory', 
+                                'read_state_writeBack']:
+                    _, instr = getattr(self.cpu_excel, state_reader)()
+                    if instr and "SWI" in str(instr):
+                        has_swi = True
+                        break
+                
+                if has_swi:
+                    self.controller.print_console("[CPU] SWI detectado, deteniendo ejecución")
+                    break
+                    
+                # Ejecutar un ciclo del procesador
+                self.cpu_instance.pipeline.step()
+                
+                # Verificar si el pipeline está vacío
+                pipeline = self.cpu_instance.pipeline
+                if all(stage is None for stage in (
+                    pipeline.if_id, pipeline.id_ex, 
+                    pipeline.ex_mem, pipeline.mem_wb
+                )):
+                    self.controller.print_console("[CPU] Pipeline vacío, ejecución completa")
+                    break
         
         #Paso 3: Cargar todas las señales y memorias de vuelta al excel
+        self._save_from_executor_to_excel()
         
         #Paso 4:Actualizar cual seria la ultima posicion del pipeline
         self.cpu_excel.write_state_fetch('NOP')
@@ -345,3 +387,271 @@ class CPUView:
         self.controller.print_console("[CPU] Se ejecutó todo el programa restante")
         elapsed = time.time() - start_time
         self.controller.print_console(f"[TIMER] Ejecución duró {elapsed:.3f} segundos")
+        
+    def _parse_excel_value(self, data_type, value):
+        """
+        Convierte valores del Excel al formato esperado por el procesador.
+        
+        Args:
+            data_type: Tipo de dato retornado por Excel (DataType enum)
+            value: Valor leído del Excel
+            
+        Returns:
+            int: Valor convertido a entero de 32/64 bits según corresponda
+        """
+        if value is None:
+            return 0
+            
+        # Si ya es entero, usarlo directamente
+        if isinstance(value, int):
+            return value & 0xFFFFFFFF  # Asegurar 32 bits
+        
+        # Si es string, convertir según formato
+        if isinstance(value, str):
+            value = value.strip()
+            if value.startswith('0x'):
+                return int(value, 16) & 0xFFFFFFFF
+            elif value.startswith('0b'):
+                return int(value, 2) & 0xFFFFFFFF
+            elif value.startswith('0d'):
+                return int(value[2:]) & 0xFFFFFFFF
+            else:
+                # Intentar como decimal
+                try:
+                    return int(value) & 0xFFFFFFFF
+                except:
+                    return 0
+        
+        return 0
+
+    def _extract_bit_field(self, value, start_bit, num_bits):
+        """Extrae un campo de bits de un valor."""
+        mask = (1 << num_bits) - 1
+        return (value >> start_bit) & mask
+
+    def _load_from_excel_to_executor(self):
+        """
+        Carga todo el estado desde Excel al procesador.
+        Este es el PASO 2 de la ejecución del ciclo.
+        """
+        try:
+            # Verificar que tengamos el procesador
+            if not hasattr(self, 'cpu_instance'):
+                # Crear instancia del procesador si no existe
+                self.cpu_instance = Procesador()
+                self.controller.print_console("[CPU] Procesador inicializado")
+            
+            cpu = self.cpu_instance
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 1. CARGAR REGISTROS GENERALES (R0-R15)
+            # ═══════════════════════════════════════════════════════════════
+            for i in range(16):
+                method_name = f'read_r{i}'
+                if hasattr(self.cpu_excel, method_name):
+                    data_type, value = getattr(self.cpu_excel, method_name)()
+                    reg_value = self._parse_excel_value(data_type, value)
+                    cpu.register_file.regs[i] = reg_value
+                    
+            # ═══════════════════════════════════════════════════════════════
+            # 2. CARGAR REGISTROS SEGUROS (W1-W9, D0)
+            # ═══════════════════════════════════════════════════════════════
+            for i in range(1, 10):
+                method_name = f'read_w{i}'
+                if hasattr(self.cpu_excel, method_name):
+                    data_type, value = getattr(self.cpu_excel, method_name)()
+                    reg_value = self._parse_excel_value(data_type, value)
+                    cpu.safe_register_file._regs[i-1] = reg_value
+                    
+            # D0 (constante TEA)
+            data_type, value = self.cpu_excel.read_d0_safe()
+            cpu.safe_register_file._regs[9] = self._parse_excel_value(data_type, value)
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 3. CARGAR LLAVES CRIPTOGRÁFICAS (Vault Memory)
+            # ═══════════════════════════════════════════════════════════════
+            for key_idx in range(4):
+                for block_idx in range(4):
+                    method_name = f'read_k{key_idx}_{block_idx}'
+                    if hasattr(self.cpu_excel, method_name):
+                        data_type, value = getattr(self.cpu_excel, method_name)()
+                        vault_value = self._parse_excel_value(data_type, value)
+                        mem_idx = key_idx * 4 + block_idx
+                        cpu.vault_memory._mem[mem_idx] = vault_value
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 4. CARGAR BLOQUES DE CONTRASEÑA (Login Memory)
+            # ═══════════════════════════════════════════════════════════════
+            for i in range(1, 9):
+                method_name = f'read_p{i}'
+                if hasattr(self.cpu_excel, method_name):
+                    data_type, value = getattr(self.cpu_excel, method_name)()
+                    login_value = self._parse_excel_value(data_type, value)
+                    cpu.login_memory._mem[i-1] = login_value
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 5. CARGAR MEMORIA GENERAL (64 bloques)
+            # ═══════════════════════════════════════════════════════════════
+            for i in range(64):
+                mem_value = self.cpu_excel.read_memory_block(i)
+                cpu.data_memory._mem[i] = mem_value & 0xFFFFFFFF
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 6. CARGAR SEÑALES DEL PIPELINE
+            # ═══════════════════════════════════════════════════════════════
+            
+            # Program Counter
+            data_type, value = self.cpu_excel.read_pcf()
+            pcf_value = self._parse_excel_value(data_type, value)
+            cpu.pc._pc = pcf_value
+            
+            # Flags (NZCV)
+            data_type, value = self.cpu_excel.read_flagse()
+            flags_value = self._parse_excel_value(data_type, value)
+            if isinstance(flags_value, int):
+                cpu.flags.N = (flags_value >> 3) & 1
+                cpu.flags.Z = (flags_value >> 2) & 1
+                cpu.flags.C = (flags_value >> 1) & 1
+                cpu.flags.V = flags_value & 1
+            
+            # SafeFlags (S1, S2)
+            data_type, value = self.cpu_excel.read_safeflagsout()
+            safe_flags = self._parse_excel_value(data_type, value)
+            if isinstance(safe_flags, int):
+                cpu.flags.S1 = (safe_flags >> 1) & 1
+                cpu.flags.S2 = safe_flags & 1
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 7. CARGAR ESTADO DE AUTENTICACIÓN
+            # ═══════════════════════════════════════════════════════════════
+            auth = cpu.cond_unit.auth_process
+            
+            # Timer
+            data_type, value = self.cpu_excel.read_timer_safe()
+            timer_value = self._parse_excel_value(data_type, value)
+            # El timer se manejará internamente en AuthenticationProcess
+            
+            # Block Status
+            data_type, value = self.cpu_excel.read_block_statusOut()
+            block_status = self._parse_excel_value(data_type, value)
+            auth.set_block_states(block_status & 0xFF)
+            
+            # Intentos disponibles
+            data_type, value = self.cpu_excel.read_attempts_available()
+            attempts = self._parse_excel_value(data_type, value)
+            auth.try_counter = attempts & 0xF
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 8. CARGAR MEMORIAS DINÁMICAS (desde archivos .bin)
+            # ═══════════════════════════════════════════════════════════════
+            
+            # Memoria dinámica
+            dynamic_mem_path = Path(self.base_dir) / "Assets" / "dynamic_mem.bin"
+            if dynamic_mem_path.exists():
+                with open(dynamic_mem_path, 'rb') as f:
+                    data = f.read()
+                    # Cargar en bloques de 64 bits (8 bytes)
+                    for i in range(0, min(len(data), 512), 8):  # Max 64 bloques x 8 bytes
+                        if i + 8 <= len(data):
+                            block_data = struct.unpack('<Q', data[i:i+8])[0]
+                            cpu.dynamic_memory._mem[i//8] = block_data
+            
+            # Memoria de instrucciones
+            instruction_mem_path = Path(self.base_dir) / "Assets" / "instruction_mem.bin"
+            if instruction_mem_path.exists():
+                instructions = self._bin_to_prog_list(str(instruction_mem_path))
+                cpu.instruction_memory.load(instructions, start_addr=0)
+            
+            self.controller.print_console("[CPU] Estado cargado desde Excel al procesador")
+            
+        except Exception as e:
+            self.controller.print_console(f"[ERROR] Error cargando estado: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _bin_to_prog_list(self, bin_path: str):
+        """Convierte archivo binario a lista de instrucciones de 64 bits."""
+        data = Path(bin_path).read_bytes()
+        if len(data) % 8:
+            raise ValueError("El archivo no tiene múltiplos de 8 bytes.")
+        
+        words = []
+        for i in range(0, len(data), 8):
+            word = struct.unpack(">Q", data[i:i+8])[0]  # 64-bit big-endian
+            words.append(word)
+        return words
+
+    def _save_from_executor_to_excel(self):
+        """
+        Guarda todo el estado desde el procesador al Excel.
+        Este es el PASO 4 de la ejecución del ciclo.
+        """
+        try:
+            if not hasattr(self, 'cpu_instance'):
+                self.controller.print_console("[ERROR] No hay procesador activo")
+                return
+                
+            cpu = self.cpu_instance
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 1. GUARDAR REGISTROS GENERALES
+            # ═══════════════════════════════════════════════════════════════
+            for i in range(16):
+                method_name = f'write_r{i}'
+                if hasattr(self.cpu_excel, method_name):
+                    value = cpu.register_file.regs[i]
+                    getattr(self.cpu_excel, method_name)(f"0x{value:08X}")
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 2. GUARDAR REGISTROS SEGUROS
+            # ═══════════════════════════════════════════════════════════════
+            for i in range(1, 10):
+                method_name = f'write_w{i}'
+                if hasattr(self.cpu_excel, method_name):
+                    value = cpu.safe_register_file._regs[i-1]
+                    getattr(self.cpu_excel, method_name)(f"0x{value:08X}")
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 3. GUARDAR MEMORIA GENERAL
+            # ═══════════════════════════════════════════════════════════════
+            for i in range(64):
+                value = cpu.data_memory._mem[i]
+                self.cpu_excel.write_memory_block(i, value, "hex")
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 4. GUARDAR FLAGS Y ESTADOS
+            # ═══════════════════════════════════════════════════════════════
+            
+            # Program Counter
+            self.cpu_excel.write_pcf(f"0x{cpu.pc._pc:08X}")
+            
+            # Flags NZCV
+            flags_value = (cpu.flags.N << 3) | (cpu.flags.Z << 2) | (cpu.flags.C << 1) | cpu.flags.V
+            self.cpu_excel.write_flagse(f"0b{flags_value:04b}")
+            
+            # SafeFlags
+            safe_flags = (cpu.flags.S1 << 1) | cpu.flags.S2
+            self.cpu_excel.write_safeflagsout(f"0b{safe_flags:02b}")
+            
+            # Authentication state
+            auth = cpu.cond_unit.auth_process
+            self.cpu_excel.write_block_statusOut(f"0b{auth.get_block_states():08b}")
+            self.cpu_excel.write_attempts_available(f"0b{auth.try_counter:04b}")
+            
+            # Ejecutar todas las escrituras pendientes
+            self.cpu_excel.table.execute_all()
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 5. GUARDAR MEMORIAS DINÁMICAS
+            # ═══════════════════════════════════════════════════════════════
+            
+            # Guardar memoria dinámica
+            dynamic_mem_path = Path(self.base_dir) / "Assets" / "dynamic_mem.bin"
+            with open(dynamic_mem_path, 'wb') as f:
+                for block in cpu.dynamic_memory._mem:
+                    f.write(struct.pack('<Q', block & 0xFFFFFFFFFFFFFFFF))
+            
+            self.controller.print_console("[CPU] Estado guardado del procesador al Excel")
+            
+        except Exception as e:
+            self.controller.print_console(f"[ERROR] Error guardando estado: {e}")

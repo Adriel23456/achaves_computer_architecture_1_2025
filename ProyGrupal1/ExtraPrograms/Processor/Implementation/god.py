@@ -1,4 +1,4 @@
-from Processor import Procesador
+from ExtraPrograms.Processor.Implementation.Processor import Procesador
 from struct import unpack
 from pathlib import Path
 import sys

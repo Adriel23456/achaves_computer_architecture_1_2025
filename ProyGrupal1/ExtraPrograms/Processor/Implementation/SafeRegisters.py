@@ -1,7 +1,7 @@
 # safe_register_file.py
 from __future__ import annotations
 from typing import List, Optional
-from Flags import Flags
+from ExtraPrograms.Processor.Implementation.Flags import Flags
 
 MASK32 = 0xFFFFFFFF
 

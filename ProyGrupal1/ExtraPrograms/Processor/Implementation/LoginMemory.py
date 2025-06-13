@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List, Optional
-from Flags import Flags
+from ExtraPrograms.Processor.Implementation.Flags import Flags
 
 # Parámetros
 BLOCK_BITS  = 32

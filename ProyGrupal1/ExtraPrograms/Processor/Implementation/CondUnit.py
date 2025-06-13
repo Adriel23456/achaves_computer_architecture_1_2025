@@ -1,4 +1,4 @@
-from AuthenticationUnit import AuthenticationProcess
+from ExtraPrograms.Processor.Implementation.AuthenticationUnit import AuthenticationProcess
 
 class CondUnit:
     WIDTH = {
