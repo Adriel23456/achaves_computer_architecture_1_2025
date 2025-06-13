@@ -1,4 +1,5 @@
 # GUI/Views/cpu.py ─ Vista del CPU con diagrama interactivo
+import time
 import tkinter as tk
 from GUI.Components.styled_button      import StyledButton
 from GUI.Components.memory_table_view  import MemoryTableView
@@ -300,11 +301,11 @@ class CPUView:
 
         self.cpu_excel.table.execute_all()
     
-        #Paso 2: Cargar memorias y señales, desde el excel
+        #Paso 2: Cargar memorias y señales, desde el excel, al ejecutador
         
-        #Paso 3:Ejecutar SOLO 1 ciclo , pero si es un SWI en writeback entonces no hacer nada!
+        #Paso 3: Ejecutar SOLO 1 ciclo, pero si es un SWI en writeback entonces no hacer nada!
         
-        #Paso 4:Cargar todas las señales y memorias en excel
+        #Paso 4: Cargar todas las señales y memorias de vuelta al excel
         
         #Paso 5:Actualizar diagrama, memorias y señales
         self.diagram.update_signals()
@@ -315,6 +316,7 @@ class CPUView:
         """Maneja el evento de ejecutar todo"""
         #Paso 0: Asegurar la existencia de memoria de instrucciones y archivo de instrucciones
         from pathlib import Path, PurePath
+        start_time = time.time()
         current_file = self.controller.get_current_file() #Archivo de las instrucciones en crudo
         instruction_mem_path = Path(self.base_dir) / "Assets" / "instruction_mem.bin"
         if not current_file or not Path(current_file).exists() or not instruction_mem_path.exists():
@@ -339,11 +341,11 @@ class CPUView:
                 f"(esperado {expected_bytes} bytes, encontrado {real_bytes})")
             return 
         
-        #Paso 1: Cargar memorias y señales, desde el excel
+        #Paso 1: Cargar memorias y señales, desde el excel, al ejecutador
         
-        #Paso 2:Ejecutar hasta que no existan mas instrucciones o sea, si es un SWI en writeback entonces no hacer nada!
+        #Paso 2: Ejecutar hasta que no existan mas instrucciones o sea, si es un SWI en writeback entonces no hacer nada!
         
-        #Paso 3:Cargar todas las señales y memorias en excel
+        #Paso 3: Cargar todas las señales y memorias de vuelta al excel
         
         #Paso 4:Actualizar cual seria la ultima posicion del pipeline
         self.cpu_excel.write_state_fetch('NOP')
@@ -357,3 +359,5 @@ class CPUView:
         self.diagram.update_signals()
         self._load_initial_values()
         self.controller.print_console("[CPU] Se ejecutó todo el programa")
+        elapsed = time.time() - start_time
+        self.controller.print_console(f"[TIMER] Ejecución duró {elapsed:.3f} segundos")
