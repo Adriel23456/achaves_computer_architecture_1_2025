@@ -268,15 +268,6 @@ class CPUView:
         # Filtramos las etiquetas (líneas que empiezan con '.')
         instructions = [ln for ln in all_lines if not ln.startswith('.')]
         
-        # 64 bits = 8 bytes por instrucción  → comprobar tamaño del .bin
-        expected_bytes = len(instructions) * 8
-        real_bytes     = instruction_mem_path.stat().st_size
-        if real_bytes != expected_bytes:
-            self.controller.print_console(
-                f"[ERROR] instruction_mem.bin tamaño inválido "
-                f"(esperado {expected_bytes} bytes, encontrado {real_bytes})")
-            return   
-        
         # Paso 1  ▸ Avanzar el pipeline una etapa
         _, fetch_prev   = self.cpu_excel.read_state_fetch()
         self.cpu_excel.write_state_decode(fetch_prev)
@@ -333,15 +324,6 @@ class CPUView:
         except Exception as e:
             self.controller.print_console(f"[ERROR] No se pudo leer el archivo de instrucciones: {e}")
             return
-        
-        # 64 bits = 8 bytes por instrucción  → comprobar tamaño del .bin
-        expected_bytes = len(instructions_src) * 8
-        real_bytes     = instruction_mem_path.stat().st_size
-        if real_bytes != expected_bytes:
-            self.controller.print_console(
-                f"[ERROR] instruction_mem.bin tamaño inválido "
-                f"(esperado {expected_bytes} bytes, encontrado {real_bytes})")
-            return 
         
         #Paso 1: Cargar memorias y señales, desde el excel, al ejecutador
         

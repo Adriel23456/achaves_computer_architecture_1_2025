@@ -10,7 +10,6 @@ from GUI.Components.styled_button import StyledButton
 from GUI.Components.styled_ide import StyledIDE
 from GUI.Components.styled_popup import TextViewerPopup
 from ExtraPrograms.ISA.compile_service import compile_text_to_binary
-
 class CompiladorView:
     def __init__(self, parent, base_dir, config, design_manager, on_config_change, cpu_excel, controller):
         self.parent = parent
@@ -499,7 +498,7 @@ class CompiladorView:
             print_callback=self.controller.print_console
         )
         self.controller.print_console("[INFO] Compilación finalizada")
-        #self.cpu_excel.reset(False)
+        self.cpu_excel.reset(False)
         self.controller.print_console("[INFO] Memorias reiniciada")
         self.controller.set_current_file(self.current_file)
         self.controller.print_console("[INFO] Archivo guardado")
