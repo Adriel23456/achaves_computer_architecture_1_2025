@@ -1,5 +1,5 @@
 # encoder.py
-from ProyGrupal.ISA.isa import OPCODES, encode_register, encode_special_field
+from ExtraPrograms.ISA.isa import OPCODES, encode_register, encode_special_field
 
 def encode_instruction(tokens, label_table=None, current_index= None):
     op = tokens[0][1]
@@ -130,7 +130,7 @@ def encode_instruction(tokens, label_table=None, current_index= None):
         # ----- Rm no se utiliza -----
         Rm = '0000'
 
-        # ----- Extra (8 bits) -----
+        # ----- Extra (8 bits) -----
         extra = '00000000'
 
         # Ensamblar: opcode(8) + special(4) + Rd(4) + Rn(4) + Rm(4)
@@ -553,18 +553,5 @@ def encode_instruction(tokens, label_table=None, current_index= None):
         ]))
         
         return binaries
-    
-    
-    
-
-
-
-
-
-
-    
-
     else:
         raise ValueError(f"No se puede codificar instrucción: {op}")
-    
-    

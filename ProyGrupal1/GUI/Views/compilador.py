@@ -9,6 +9,7 @@ from pathlib import Path
 from GUI.Components.styled_button import StyledButton
 from GUI.Components.styled_ide import StyledIDE
 from GUI.Components.styled_popup import TextViewerPopup
+from ExtraPrograms.ISA.compile_service import compile_text_to_binary
 
 class CompiladorView:
     def __init__(self, parent, base_dir, config, design_manager, on_config_change, cpu_excel, controller):
@@ -464,7 +465,6 @@ class CompiladorView:
     def _on_compile(self):
         """Compila el código asegurando primero que el archivo esté guardado."""
         self.controller.print_console("\n[INFO] Iniciando proceso de compilación...")
-
         # -----------------------------------------------------------------
         # 1) Verificar / forzar guardado
         # -----------------------------------------------------------------
@@ -489,16 +489,17 @@ class CompiladorView:
             self.controller.print_console(f"[INFO] Archivo listo: {os.path.basename(self.current_file)}")
 
         # -----------------------------------------------------------------
-        # 2) Ahora sí, reiniciar memorias y compilar
+        # 2) Ahora sí, compilar y reiniciar memorias
         # -----------------------------------------------------------------
         # Compilación “real”
         self.controller.print_console("[INFO] Compilando código…")
         self.controller.print_console(f"[INFO] Archivo fuente: {self.current_file}")
-        self.controller.print_console(f"[INFO] Contenido actual:\n{self.ide.get()}")
-
-        # … aquí iría el proceso de compilación …
-
+        compile_text_to_binary(
+            self.ide.get(), 
+            print_callback=self.controller.print_console
+        )
         self.controller.print_console("[INFO] Compilación finalizada")
-        self.cpu_excel.reset(False)
+        #self.cpu_excel.reset(False)
         self.controller.print_console("[INFO] Memorias reiniciada")
         self.controller.set_current_file(self.current_file)
+        self.controller.print_console("[INFO] Archivo guardado")
