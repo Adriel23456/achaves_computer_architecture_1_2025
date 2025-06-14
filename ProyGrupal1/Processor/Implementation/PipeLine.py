@@ -190,6 +190,7 @@ class Pipeline:
 
         # === Calcular carry_in desde FlagsE (6 bits: NZCVSS) ===
         flags_e  = self.id_ex["FlagsE"]
+        print(f"[EXEC]  FlagsE_in  = {flags_e:04b}")   
         carry_in = (flags_e >> 1) & 0b1  # bit 1 = Carry
 
         # === Ejecutar ALU ===
@@ -208,6 +209,7 @@ class Pipeline:
             nzcv,
             flags_e,
         )
+        print(f"[EXEC]  Flags'     = {self.flags.as_nzcv():04b}")
         # === Calcular PCSrc modificado ===
         pcsrc_m = ctrl["PCSrc"] & self.cond_unit.CondExE
 
