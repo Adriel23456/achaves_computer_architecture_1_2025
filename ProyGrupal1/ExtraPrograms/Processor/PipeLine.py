@@ -1,4 +1,4 @@
-from ExtraPrograms.Processor.Implementation.PrinterUnit import PrinterUnit  # si está en otro archivo
+from ExtraPrograms.Processor.PrinterUnit import PrinterUnit  # si está en otro archivo
 
 class Pipeline:
     def __init__(self, program_counter, instruction_memory,

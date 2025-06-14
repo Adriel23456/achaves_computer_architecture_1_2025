@@ -300,6 +300,8 @@ class ScrollableFrame(tk.Frame):
         Desplaza SOLO cuando el contenido excede el área visible.
         Si todo cabe (no se necesita scroll), ignora la rueda del mouse.
         """
+        if not self.canvas.winfo_exists():
+            return  # Nada que hacer; abortamos silenciosamente
         region = self.canvas.bbox("all")
         if not region:
             return  # no hay contenido aún

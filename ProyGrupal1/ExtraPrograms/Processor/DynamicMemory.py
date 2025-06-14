@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List, Optional
-from ExtraPrograms.Processor.Implementation.Flags import Flags
+from ExtraPrograms.Processor.Flags import Flags
 
 
 class DynamicMemory:

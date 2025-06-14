@@ -671,7 +671,7 @@ class CPUInfoExcel:
     # Valores actuales de registros generales
     #=================================================================================
     def write_r0(self, value):
-        self.table.write(1, 17, 0x00000000)
+        self.table.write(1, 17, value)
     
     def read_r0(self):
         return self.table.read_immediate(1, 17)
@@ -1407,8 +1407,6 @@ class CPUInfoExcel:
                     # Es un uint32 que debe interpretarse como negativo
                     value_decimal = value_decimal - 4294967296
                 f.write(value_decimal.to_bytes(4, byteorder='little', signed=True))
-            
-            print(f"✓ Escrito en memoria dinámica [{address}] = {value}")
             
         except Exception as e:
             print(f"✗ Error escribiendo memoria dinámica: {e}")

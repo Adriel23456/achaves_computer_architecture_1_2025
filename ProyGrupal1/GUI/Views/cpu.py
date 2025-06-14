@@ -6,8 +6,7 @@ from GUI.Components.styled_button      import StyledButton
 from GUI.Components.memory_table_view  import MemoryTableView
 from GUI.Components.signals_table_view import SignalsTableView
 import struct
-from ExtraPrograms.Processor.Implementation.Processor import Procesador
-from ExtraPrograms.Processor.Security_Control.AuthenticationUnit import AuthenticationProcess
+from ExtraPrograms.Processor.Processor import Procesador
 
 class CPUView:
     # ──────────────────────────────────────────────────────────────────────────
@@ -34,10 +33,6 @@ class CPUView:
         self.diagram       = None
         self.memory_table  = None
         self.signals_table = None
-
-        # ── caché de lecturas iniciales (opcional) ───────────────────────────
-        self.memory_cache  = None
-        self.signals_cache = None
 
         # ── construcción de la UI principal ──────────────────────────────────
         self._create_ui()
@@ -80,6 +75,10 @@ class CPUView:
         StyledButton(container, text="Mostrar Señales",
                      command=self._toggle_signals_window,
                      design_manager=self.design_manager).pack(side=tk.LEFT, padx=10)
+        
+        StyledButton(container, text="Reiniciar CPU",
+                     command=self._on_reset_cpu,
+                     design_manager=self.design_manager).pack(side=tk.LEFT, padx=10)
 
     # ──────────────────────────────────────────────────────────────────────
     #  Sección central (diagrama)
@@ -121,26 +120,14 @@ class CPUView:
                      design_manager=self.design_manager).pack(side=tk.LEFT, padx=10)
 
     # ═════════════════════════════════════════════════════════════════════
-    #  Caché inicial
-    # ═════════════════════════════════════════════════════════════════════
-    def _load_initial_values(self):
-        self.controller.print_console("[CPU] Cargando valores iniciales…")
-        self.memory_cache  = MemoryTableView(tk.Frame(), self.design_manager, self.cpu_excel)
-        self.signals_cache = SignalsTableView(tk.Frame(), self.design_manager, self.cpu_excel)
-        self.controller.print_console("[CPU] Valores iniciales cargados en caché")
-
-    # ═════════════════════════════════════════════════════════════════════
     #  Ventana de Memorias (creación / toggle)
     # ═════════════════════════════════════════════════════════════════════
     def _toggle_memories_window(self):
         if self.memory_window and self.memory_window.winfo_exists():
-            # alternar visibilidad sin destruir
-            if self.memory_window.state() == "withdrawn":
-                self.memory_window.deiconify()
-            else:
-                self.memory_window.withdraw()
-        else:
-            self._create_memory_window()
+            self.memory_window.destroy()
+            self.memory_window = None
+            self.memory_table  = None
+        self._create_memory_window()
 
     def _create_memory_window(self):
         colors = self.design_manager.get_colors()
@@ -169,20 +156,27 @@ class CPUView:
         self.memory_table.pack(fill=tk.BOTH, expand=True)
 
         # si el usuario cierra la ventana ► ocultar, no destruir
-        self.memory_window.protocol("WM_DELETE_WINDOW",
-                                    self.memory_window.withdraw)
+        self.memory_window.protocol(
+            "WM_DELETE_WINDOW",
+            lambda: self._close_memory_window()
+        )
 
+    #Metodo de destruccion de las vistas
+    def _close_memory_window(self):
+        if self.memory_window and self.memory_window.winfo_exists():
+            self.memory_window.destroy()
+        self.memory_window = None
+        self.memory_table  = None
+        
     # ═════════════════════════════════════════════════════════════════════
     #  Ventana de Señales (creación / toggle)
     # ═════════════════════════════════════════════════════════════════════
     def _toggle_signals_window(self):
         if self.signals_window and self.signals_window.winfo_exists():
-            if self.signals_window.state() == "withdrawn":
-                self.signals_window.deiconify()
-            else:
-                self.signals_window.withdraw()
-        else:
-            self._create_signals_window()
+            self.signals_window.destroy()
+            self.signals_window = None
+            self.signals_table  = None
+        self._create_signals_window()
 
     def _create_signals_window(self):
         colors = self.design_manager.get_colors()
@@ -209,8 +203,17 @@ class CPUView:
         self.signals_table = SignalsTableView(main, self.design_manager, self.cpu_excel)
         self.signals_table.pack(fill=tk.BOTH, expand=True)
 
-        self.signals_window.protocol("WM_DELETE_WINDOW",
-                                     self.signals_window.withdraw)
+        self.signals_window.protocol(
+            "WM_DELETE_WINDOW",
+            lambda: self._close_signals_window()
+        )
+    
+    #Funcion de eliminacion de vistas aparte
+    def _close_signals_window(self):
+        if self.signals_window and self.signals_window.winfo_exists():
+            self.signals_window.destroy()
+        self.signals_window = None
+        self.signals_table  = None
 
     # ═════════════════════════════════════════════════════════════════════
     #  Actualización de vistas y temas
@@ -218,9 +221,9 @@ class CPUView:
     def _update_all_views(self):
         if self.diagram:
             self.diagram.update_signals()
-        if self.memory_table and self.memory_window.state() != "withdrawn":
+        if self.memory_table and self.memory_table.winfo_exists():
             self.memory_table.update_all_memories()
-        if self.signals_table and self.signals_window.state() != "withdrawn":
+        if self.signals_table and self.signals_table.winfo_exists():
             self.signals_table.update_all_signals()
 
     def update_theme(self):
@@ -313,8 +316,7 @@ class CPUView:
         self._save_from_executor_to_excel()
         
         #Paso 5:Actualizar diagrama, memorias y señales
-        self.diagram.update_signals()
-        self._load_initial_values()
+        self._update_all_views()
         self.controller.print_console("[CPU] Se ejecutó un ciclo")
     
     def _on_execute_all(self):
@@ -376,14 +378,13 @@ class CPUView:
         #Paso 4:Actualizar cual seria la ultima posicion del pipeline
         self.cpu_excel.write_state_fetch('NOP')
         self.cpu_excel.write_state_decode('NOP')
-        self.cpu_excel.write_state_execute('NOP')
+        self.cpu_excel.write_state_execute('SWI')
         self.cpu_excel.write_state_memory('NOP')
         self.cpu_excel.write_state_writeBack('NOP')
         self.cpu_excel.table.execute_all()
         
         #Paso 4:Actualizar diagrama, memorias y señales
-        self.diagram.update_signals()
-        self._load_initial_values()
+        self._update_all_views()
         self.controller.print_console("[CPU] Se ejecutó todo el programa restante")
         elapsed = time.time() - start_time
         self.controller.print_console(f"[TIMER] Ejecución duró {elapsed:.3f} segundos")
@@ -489,8 +490,6 @@ class CPUView:
                     login_value = self._parse_excel_value(data_type, value)
                     # IMPORTANTE: P1 va en índice 0, P2 en índice 1, etc.
                     cpu.login_memory._mem[i-1] = login_value
-                    # Debug opcional
-                    self.controller.print_console(f"[LOAD] P{i} → LoginMem[{i-1}] = {login_value}")
             
             # ═══════════════════════════════════════════════════════════════
             # 5. CARGAR MEMORIA GENERAL (64 bloques)
@@ -691,3 +690,40 @@ class CPUView:
         auth = cpu.cond_unit.auth_process
         self.controller.print_console(f"[DEBUG] Intentos: {auth.try_counter}/15")
         self.controller.print_console(f"[DEBUG] Bloques validados: {bin(auth.get_block_states())}")
+    
+    # ═════════════════════════════════════════════════════════════════════
+    #  Reiniciar CPU (nueva función pública)
+    # ═════════════════════════════════════════════════════════════════════
+    def _on_reset_cpu(self):
+        """
+        Restaura la vista a su estado predeterminado y crea una
+        nueva instancia del procesador lista para un nuevo programa.
+        """
+        # 1. Descartar instancia anterior (si existe) y crear una nueva
+        if hasattr(self, 'cpu_instance'):
+            del self.cpu_instance
+        self.cpu_instance = Procesador()
+        self.controller.print_console("[CPU] Procesador reinicializado")
+
+        # 2. Restablecer pipeline y PC en el Excel
+        self.cpu_excel.write_state_fetch('NOP')
+        self.cpu_excel.write_state_decode('NOP')
+        self.cpu_excel.write_state_execute('NOP')
+        self.cpu_excel.write_state_memory('NOP')
+        self.cpu_excel.write_state_writeBack('NOP')
+        self.cpu_excel.write_pcf("0x00000000")
+
+        # 3. Limpiar registros y memoria general
+        for i in range(16):
+            getattr(self.cpu_excel, f'write_r{i}')("0x00000000")
+        for i in range(1, 10):
+            getattr(self.cpu_excel, f'write_w{i}')("0x00000000")
+        for i in range(64):
+            self.cpu_excel.write_memory_block(i, 0, "hex")
+
+        # 4. Aplicar cambios en la hoja
+        self.cpu_excel.table.execute_all()
+
+        # 5. Actualizar diagramas / tablas en pantalla
+        self._update_all_views()
+        self.controller.print_console("[CPU] Vista restablecida y lista para nuevo set de instrucciones")

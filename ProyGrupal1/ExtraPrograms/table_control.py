@@ -88,7 +88,6 @@ class TableControl:
         self._initialize_excel()
         
         self._initialized = True
-        print("✓ TableControl inicializado en modo MANUAL")
         
     def _initialize_excel(self):
         """Inicializa o carga el archivo Excel"""
@@ -96,7 +95,6 @@ class TableControl:
             if os.path.exists(self.filename):
                 self.workbook = openpyxl.load_workbook(self.filename)
                 self.worksheet = self.workbook.active
-                print(f"✓ Archivo '{self.filename}' cargado exitosamente")
             else:
                 self.workbook = Workbook()
                 self.worksheet = self.workbook.active
@@ -152,9 +150,6 @@ class TableControl:
             
             # Detectar tipo y procesar valor
             data_type, processed_value = self._detect_data_type(cell_value)
-            
-            print(f"🔍 Lectura inmediata: {data_type.value} = '{processed_value}' "
-                  f"desde [{row}, {column}]")
             
             return data_type, processed_value
             
@@ -414,8 +409,6 @@ class TableControl:
     
     def _execute_action(self, action: TableAction):
         """Ejecuta una acción individual"""
-        print(f"\n📋 Procesando acción: {action.action_type.value} "
-              f"en [{action.row}, {action.column}]")
         
         if action.action_type == ActionType.WRITE:
             self._execute_write(action)
@@ -433,8 +426,6 @@ class TableControl:
             
             # Guardar archivo
             self._save_workbook()
-            
-            print(f"✓ Escrito '{display_value}' en celda [{action.row}, {action.column}]")
             
             # Ejecutar callback si existe
             if action.callback:
@@ -556,7 +547,6 @@ class TableControl:
         """
         action = TableAction(ActionType.WRITE, row, column, content, callback)
         self.action_queue.put(action)
-        print(f"➕ Acción de escritura agregada a la cola (Total: {self.get_queue_size()})")
     
     def read(self, row: int, column: int, callback: callable = None):
         """

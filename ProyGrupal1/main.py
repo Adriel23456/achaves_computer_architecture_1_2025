@@ -52,7 +52,7 @@ def ensure_config_exists():
 def main():
     # Inicializar la clase de información de CPU
     cpu_excel = CPUInfoExcel()
-    #cpu_excel.reset(False) #Resetea la información de CPU al inicio
+    cpu_excel.reset(False) #Resetea la información de CPU al inicio
     
     #cpu_excel.write_k0_0("0xDEADBEEF")
     #cpu_excel.write_k0_1("0xDEADBEEF")

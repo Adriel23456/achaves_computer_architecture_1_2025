@@ -1,17 +1,17 @@
-from ExtraPrograms.Processor.Implementation.PipeLine import Pipeline
-from ExtraPrograms.Processor.Implementation.ProgramCounter import ProgramCounter
-from ExtraPrograms.Processor.Implementation.InstructionMemory import InstructionMemory
-from ExtraPrograms.Processor.Implementation.RegisterFile import RegisterFile
-from ExtraPrograms.Processor.Implementation.SafeRegisters import SafeRegisterFile
-from ExtraPrograms.Processor.Implementation.DataMemory import DataMemory
-from ExtraPrograms.Processor.Implementation.DynamicMemory import DynamicMemory
-from ExtraPrograms.Processor.Implementation.VaultMemory import VaultMemory
-from ExtraPrograms.Processor.Implementation.LoginMemory import LoginMemory
-from ExtraPrograms.Processor.Implementation.ALU import ALU
-from ExtraPrograms.Processor.Implementation.Flags import Flags
-from ExtraPrograms.Processor.Implementation.ControlUnit import ControlUnit
-from ExtraPrograms.Processor.Implementation.CondUnit import CondUnit
-from ExtraPrograms.Processor.Implementation.Extend import BinaryZeroExtend
+from ExtraPrograms.Processor.PipeLine import Pipeline
+from ExtraPrograms.Processor.ProgramCounter import ProgramCounter
+from ExtraPrograms.Processor.InstructionMemory import InstructionMemory
+from ExtraPrograms.Processor.RegisterFile import RegisterFile
+from ExtraPrograms.Processor.SafeRegisters import SafeRegisterFile
+from ExtraPrograms.Processor.DataMemory import DataMemory
+from ExtraPrograms.Processor.DynamicMemory import DynamicMemory
+from ExtraPrograms.Processor.VaultMemory import VaultMemory
+from ExtraPrograms.Processor.LoginMemory import LoginMemory
+from ExtraPrograms.Processor.ALU import ALU
+from ExtraPrograms.Processor.Flags import Flags
+from ExtraPrograms.Processor.ControlUnit import ControlUnit
+from ExtraPrograms.Processor.CondUnit import CondUnit
+from ExtraPrograms.Processor.Extend import BinaryZeroExtend
 
 class Procesador:
     def __init__(self):

@@ -1,6 +1,6 @@
 # vault_memory.py
 from typing import List, Optional
-from ExtraPrograms.Processor.Implementation.Flags import Flags
+from ExtraPrograms.Processor.Flags import Flags
 
 # ─── Parámetros de la memoria ─────────────────────────────
 BLOCK_BITS  = 32
