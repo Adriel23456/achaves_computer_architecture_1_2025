@@ -65,10 +65,10 @@ class TableControl:
         # Usar ruta absoluta basada en la ubicación de este archivo
         current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
         parent_dir = current_dir.parent  # Subir un nivel desde ExtraPrograms
-        assets_dir = parent_dir / "Assets"
+        assets_dir = parent_dir / "assets"
 
         # Si se pasa un filename relativo, convertirlo a absoluto
-        if filename is None or filename == "Assets/table_data.xlsx":
+        if filename is None or filename == "assets/table_data.xlsx":
             self.filename = str(assets_dir / "table_data.xlsx")
         else:
             # Si es una ruta relativa, hacerla absoluta respecto al parent_dir
@@ -81,14 +81,13 @@ class TableControl:
         self.workbook = None
         self.worksheet = None
         
-        # Crear directorio Assets si no existe
+        # Crear directorio assets si no existe
         os.makedirs(assets_dir, exist_ok=True)
         
         # Inicializar archivo Excel
         self._initialize_excel()
         
         self._initialized = True
-        print("✓ TableControl inicializado en modo MANUAL")
         
     def _initialize_excel(self):
         """Inicializa o carga el archivo Excel"""
@@ -96,7 +95,6 @@ class TableControl:
             if os.path.exists(self.filename):
                 self.workbook = openpyxl.load_workbook(self.filename)
                 self.worksheet = self.workbook.active
-                print(f"✓ Archivo '{self.filename}' cargado exitosamente")
             else:
                 self.workbook = Workbook()
                 self.worksheet = self.workbook.active
@@ -122,7 +120,7 @@ class TableControl:
             # Si el archivo está abierto, intentar guardar con otro nombre
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir = current_dir.parent
-            backup_name = str(parent_dir / "Assets" / "table_data_temp.xlsx")
+            backup_name = str(parent_dir / "assets" / "table_data_temp.xlsx")
             self.workbook.save(backup_name)
             print(f"⚠ Archivo principal bloqueado, guardado en: {backup_name}")
         except Exception as e:
@@ -152,9 +150,6 @@ class TableControl:
             
             # Detectar tipo y procesar valor
             data_type, processed_value = self._detect_data_type(cell_value)
-            
-            print(f"🔍 Lectura inmediata: {data_type.value} = '{processed_value}' "
-                  f"desde [{row}, {column}]")
             
             return data_type, processed_value
             
@@ -414,8 +409,6 @@ class TableControl:
     
     def _execute_action(self, action: TableAction):
         """Ejecuta una acción individual"""
-        print(f"\n📋 Procesando acción: {action.action_type.value} "
-              f"en [{action.row}, {action.column}]")
         
         if action.action_type == ActionType.WRITE:
             self._execute_write(action)
@@ -433,8 +426,6 @@ class TableControl:
             
             # Guardar archivo
             self._save_workbook()
-            
-            print(f"✓ Escrito '{display_value}' en celda [{action.row}, {action.column}]")
             
             # Ejecutar callback si existe
             if action.callback:
@@ -556,7 +547,6 @@ class TableControl:
         """
         action = TableAction(ActionType.WRITE, row, column, content, callback)
         self.action_queue.put(action)
-        print(f"➕ Acción de escritura agregada a la cola (Total: {self.get_queue_size()})")
     
     def read(self, row: int, column: int, callback: callable = None):
         """

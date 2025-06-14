@@ -1,0 +1,7 @@
+DELTA = 0x9e3779b9
+KEY = 0xdeadbeefdeadbeefdeadbeefdeadbeef
+
+Cifrado esperado:
+    nombre: jorge_luis.txt.enc (puede ser cualquiera)
+    tamaño: 11456 bytes
+    MD5: 89e2c3da4aa7f65719d92fae71cdbf81

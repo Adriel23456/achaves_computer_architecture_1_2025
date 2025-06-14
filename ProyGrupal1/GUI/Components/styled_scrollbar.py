@@ -4,40 +4,195 @@ styled_scrollbar.py - Componentes de scrollbar estilizados
 import tkinter as tk
 from tkinter import ttk
 
-class StyledVerticalScrollbar(ttk.Scrollbar):
+class StyledVerticalScrollbar(tk.Frame):
+    """Scrollbar vertical personalizado con mejor soporte de temas"""
     def __init__(self, parent, design_manager, **kwargs):
-        super().__init__(parent, orient='vertical', **kwargs)
         self.design_manager = design_manager
-        self._configure_style()
-    
-    def _configure_style(self):
-        """Configura el estilo del scrollbar"""
+        colors = design_manager.get_colors()
+        
+        # Frame contenedor
+        super().__init__(parent, bg=colors['bg'], width=12)
+        
+        # Canvas para dibujar el scrollbar
+        self.canvas = tk.Canvas(
+            self,
+            width=12,
+            bg=colors['bg'],
+            highlightthickness=0,
+            borderwidth=0
+        )
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+        
+        # Variables de estado
+        self.thumb_pos = 0
+        self.thumb_size = 0.1
+        self.is_dragging = False
+        self.command = None
+        
+        # Dibujar elementos
+        self._create_elements()
+        
+        # Configurar eventos
+        self.canvas.bind('<Button-1>', self._on_click)
+        self.canvas.bind('<B1-Motion>', self._on_drag)
+        self.canvas.bind('<ButtonRelease-1>', self._on_release)
+        self.canvas.bind('<Enter>', self._on_enter)
+        self.canvas.bind('<Leave>', self._on_leave)
+        self.canvas.bind('<Configure>', self._on_configure)
+        
+    def _create_elements(self):
+        """Crea los elementos visuales del scrollbar"""
         colors = self.design_manager.get_colors()
-        style = ttk.Style()
         
-        # Configurar estilo para scrollbar vertical
-        style.configure(
-            'Vertical.TScrollbar',
-            background=colors['button_bg'],
-            troughcolor=colors['bg'],
-            bordercolor=colors['bg'],
-            arrowcolor=colors['fg'],
-            lightcolor=colors['button_bg'],
-            darkcolor=colors['button_bg']
+        # Limpiar canvas
+        self.canvas.delete('all')
+        
+        # Fondo (trough)
+        self.trough = self.canvas.create_rectangle(
+            2, 2, 10, self.canvas.winfo_height() - 2,
+            fill=colors['button_bg'],
+            outline='',
+            tags='trough'
         )
         
-        # Configurar el comportamiento al pasar el mouse
-        style.map(
-            'Vertical.TScrollbar',
-            background=[('active', colors['button_hover'])],
-            arrowcolor=[('active', colors['fg'])]
+        # Thumb (parte que se mueve)
+        self.thumb = self.canvas.create_rectangle(
+            2, 2, 10, 50,
+            fill=colors['button_hover'],
+            outline='',
+            tags='thumb'
+        )
+    
+    def set(self, first, last):
+        """Actualiza la posición del scrollbar"""
+        first = float(first)
+        last = float(last)
+        
+        height = self.canvas.winfo_height()
+        if height <= 1:
+            return
+            
+        # Margen superior e inferior
+        margin = 2
+        available_height = height - (2 * margin)
+        
+        # Tamaño del thumb proporcional al contenido visible
+        thumb_ratio = last - first
+        thumb_height = max(20, int(thumb_ratio * available_height))
+        
+        # Posición del thumb
+        # Cuando first=0, thumb está arriba (margin)
+        # Cuando first=1-thumb_ratio, thumb está abajo (height-margin-thumb_height)
+        max_top = available_height - thumb_height
+        thumb_top = margin + int(first * max_top / (1.0 - thumb_ratio) if thumb_ratio < 1.0 else 0)
+        
+        # Actualizar posición del thumb
+        self.canvas.coords(
+            self.thumb,
+            2, thumb_top,
+            10, thumb_top + thumb_height
         )
         
-        self.configure(style='Vertical.TScrollbar')
+        # Guardar valores
+        self.thumb_pos = first
+        self.thumb_size = thumb_ratio
+    
+    def config(self, **kwargs):
+        """Configura el scrollbar"""
+        if 'command' in kwargs:
+            self.command = kwargs.pop('command')
+        # No pasar 'command' al Frame padre
+        if kwargs:
+            super().configure(**kwargs)
+    
+    def configure(self, **kwargs):
+        """Alias para config"""
+        self.config(**kwargs)
+    
+    def _on_click(self, event):
+        """Maneja clicks en el scrollbar"""
+        if self.command is None:
+            return
+            
+        # Verificar si se hizo click en el thumb
+        clicked_item = self.canvas.find_closest(event.x, event.y)[0]
+        
+        if clicked_item == self.thumb:
+            self.is_dragging = True
+            # Guardar offset del click dentro del thumb
+            thumb_coords = self.canvas.coords(self.thumb)
+            self.drag_offset = event.y - thumb_coords[1]
+        else:
+            # Click en el trough - página arriba/abajo
+            thumb_coords = self.canvas.coords(self.thumb)
+            if thumb_coords:
+                if event.y < thumb_coords[1]:
+                    self.command('scroll', -1, 'pages')
+                elif event.y > thumb_coords[3]:
+                    self.command('scroll', 1, 'pages')
+    
+    def _on_drag(self, event):
+        """Maneja el arrastre del thumb"""
+        if not self.is_dragging or self.command is None:
+            return
+            
+        height = self.canvas.winfo_height()
+        if height <= 1:
+            return
+            
+        margin = 2
+        available_height = height - (2 * margin)
+        thumb_height = max(20, int(self.thumb_size * available_height))
+        max_top = available_height - thumb_height
+        
+        # Posición deseada del top del thumb (considerando el offset)
+        desired_top = event.y - self.drag_offset
+        desired_top = max(margin, min(desired_top, margin + max_top))
+        
+        # Convertir a posición normalizada
+        if max_top > 0 and self.thumb_size < 1.0:
+            normalized_pos = (desired_top - margin) / max_top
+            new_pos = normalized_pos * (1.0 - self.thumb_size)
+            new_pos = max(0, min(new_pos, 1.0 - self.thumb_size))
+            
+            # Mover a la nueva posición
+            self.command('moveto', new_pos)
+    
+    def _on_release(self, event):
+        """Maneja cuando se suelta el click"""
+        self.is_dragging = False
+    
+    def _on_enter(self, event):
+        """Maneja cuando el mouse entra al scrollbar"""
+        colors = self.design_manager.get_colors()
+        self.canvas.itemconfig(self.thumb, fill=colors['button_active'])
+    
+    def _on_leave(self, event):
+        """Maneja cuando el mouse sale del scrollbar"""
+        if not self.is_dragging:
+            colors = self.design_manager.get_colors()
+            self.canvas.itemconfig(self.thumb, fill=colors['button_hover'])
+    
+    def _on_configure(self, event):
+        """Maneja cuando se redimensiona el canvas"""
+        # Actualizar el tamaño del trough
+        self.canvas.coords(
+            self.trough,
+            2, 2, 10, event.height - 2
+        )
+        # Redibujar el thumb con los nuevos cálculos
+        if hasattr(self, 'thumb_pos') and hasattr(self, 'thumb_size'):
+            self.set(self.thumb_pos, self.thumb_pos + self.thumb_size)
     
     def update_theme(self):
-        """Actualiza el estilo cuando cambia el tema"""
-        self._configure_style()
+        """Actualiza los colores cuando cambia el tema"""
+        colors = self.design_manager.get_colors()
+        
+        # Actualizar colores
+        self.configure(bg=colors['bg'])
+        self.canvas.configure(bg=colors['bg'])
+        self.canvas.itemconfig(self.trough, fill=colors['button_bg'])
+        self.canvas.itemconfig(self.thumb, fill=colors['button_hover'])
 
 
 class StyledHorizontalScrollbar(ttk.Scrollbar):
@@ -145,6 +300,8 @@ class ScrollableFrame(tk.Frame):
         Desplaza SOLO cuando el contenido excede el área visible.
         Si todo cabe (no se necesita scroll), ignora la rueda del mouse.
         """
+        if not self.canvas.winfo_exists():
+            return  # Nada que hacer; abortamos silenciosamente
         region = self.canvas.bbox("all")
         if not region:
             return  # no hay contenido aún

@@ -6,7 +6,7 @@ from pathlib import Path
 current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, str(current_dir))
 
-from ExtraPrograms.table_control import DataType, TableControl #Este import de acá me da conflictos (Marco), no entiendo porque si debería funcionar, a lo mejor es mi IDE, lo dejo de lado
+from ExtraPrograms.table_control import DataType, TableControl
 
 class CPUInfoExcel:
     """Clase para manejar la lectura y escritura de señales del CPU en Excel"""
@@ -671,7 +671,7 @@ class CPUInfoExcel:
     # Valores actuales de registros generales
     #=================================================================================
     def write_r0(self, value):
-        self.table.write(1, 17, 0x00000000)
+        self.table.write(1, 17, value)
     
     def read_r0(self):
         return self.table.read_immediate(1, 17)
@@ -1329,7 +1329,7 @@ class CPUInfoExcel:
             # Construir ruta al archivo
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir = current_dir.parent
-            bin_file = parent_dir / "Assets" / "dynamic_mem.bin"
+            bin_file = parent_dir / "assets" / "dynamic_mem.bin"
             
             # Si no existe el archivo, retornar 0
             if not bin_file.exists():
@@ -1380,7 +1380,7 @@ class CPUInfoExcel:
             # Construir ruta
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir = current_dir.parent
-            assets_dir = parent_dir / "Assets"
+            assets_dir = parent_dir / "assets"
             bin_file = assets_dir / "dynamic_mem.bin"
             
             # Crear directorio si no existe
@@ -1407,8 +1407,6 @@ class CPUInfoExcel:
                     # Es un uint32 que debe interpretarse como negativo
                     value_decimal = value_decimal - 4294967296
                 f.write(value_decimal.to_bytes(4, byteorder='little', signed=True))
-            
-            print(f"✓ Escrito en memoria dinámica [{address}] = {value}")
             
         except Exception as e:
             print(f"✗ Error escribiendo memoria dinámica: {e}")
@@ -1439,7 +1437,7 @@ class CPUInfoExcel:
             # Construir ruta al archivo
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir = current_dir.parent
-            bin_file = parent_dir / "Assets" / "instruction_mem.bin"
+            bin_file = parent_dir / "assets" / "instruction_mem.bin"
             
             # Si no existe el archivo, retornar 0
             if not bin_file.exists():
@@ -1455,7 +1453,7 @@ class CPUInfoExcel:
                     return self._format_output(0, format_type, 64)
                 
                 # Convertir bytes a entero CON SIGNO (complemento a 2)
-                value = int.from_bytes(data, byteorder='little', signed=True)
+                value = int.from_bytes(data, byteorder='big', signed=True)
                 
             return self._format_output(value, format_type, 64)
             
@@ -1841,10 +1839,10 @@ class CPUInfoExcel:
             self.write_attempts_available("0b0000")
             
             # Write numérico de llaves criptograficas (valores iniciales) usando funciones
-            self.write_k0_0("0x00000000")
-            self.write_k0_1("0x00000000")
-            self.write_k0_2("0x00000000")
-            self.write_k0_3("0x00000000")
+            self.write_k0_0("0xDEADBEEF")
+            self.write_k0_1("0xDEADBEEF")
+            self.write_k0_2("0xDEADBEEF")
+            self.write_k0_3("0xDEADBEEF")
             self.write_k1_0("0x00000000")
             self.write_k1_1("0x00000000")
             self.write_k1_2("0x00000000")
@@ -1859,13 +1857,13 @@ class CPUInfoExcel:
             self.write_k3_3("0x00000000")
             
             # Write numérico (valores iniciales) usando funciones de la contraseña
-            self.write_p1("0x00000001")
-            self.write_p2("0x00000010")
-            self.write_p3("0x00000011")
-            self.write_p4("0x00000100")
-            self.write_p5("0x00000101")
-            self.write_p6("0x00000110")
-            self.write_p7("0x00000111")
-            self.write_p8("0x00001000")
+            self.write_p1("0x00000001")  # P1 = 1
+            self.write_p2("0x00000002")  # P2 = 2
+            self.write_p3("0x00000003")  # P3 = 3
+            self.write_p4("0x00000004")  # P4 = 4
+            self.write_p5("0x00000005")  # P5 = 5
+            self.write_p6("0x00000006")  # P6 = 6
+            self.write_p7("0x00000007")  # P7 = 7
+            self.write_p8("0x00000008")  # P8 = 8
 
         self.table.execute_all()

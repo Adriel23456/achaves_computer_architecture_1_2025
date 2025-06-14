@@ -10,9 +10,10 @@ from GUI.design import DesignManager
 from GUI.Components.styled_button import StyledButton
 
 class Application:
-    def __init__(self, base_dir, config_path):
+    def __init__(self, base_dir, config_path, cpu_excel):
         self.base_dir = base_dir
         self.config_path = config_path
+        self.cpu_excel = cpu_excel
         self.config = self._load_config()
         
         # Crear ventana principal
@@ -35,7 +36,8 @@ class Application:
             self.base_dir, 
             self.config,
             self.design_manager,
-            self._on_config_change
+            self._on_config_change,
+            self.cpu_excel
         )
         
         # Crear sidebar

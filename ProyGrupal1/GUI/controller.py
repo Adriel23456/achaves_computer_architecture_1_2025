@@ -6,12 +6,13 @@ import tkinter as tk
 from tkinter import ttk
 
 class ViewController:
-    def __init__(self, parent_frame, base_dir, config, design_manager, on_config_change):
+    def __init__(self, parent_frame, base_dir, config, design_manager, on_config_change, cpu_excel):
         self.parent_frame = parent_frame
         self.base_dir = base_dir
         self.config = config
         self.design_manager = design_manager
         self.on_config_change = on_config_change
+        self.cpu_excel = cpu_excel
         
         # Cache de vistas cargadas
         self.loaded_views = {}
@@ -19,6 +20,9 @@ class ViewController:
         # Vista actual
         self.current_view = None
         self.current_view_name = None
+        
+        #Current File
+        self.current_file = None
         
         # Mapeo de nombres a módulos y clases (sin tildes en las clases)
         self.view_mapping = {
@@ -95,7 +99,9 @@ class ViewController:
                 self.base_dir, 
                 self.config,
                 self.design_manager,
-                self.on_config_change
+                self.on_config_change,
+                self.cpu_excel,
+                self
             )
             
             # Agregar métodos de control a la vista
@@ -132,19 +138,34 @@ class ViewController:
     
     def refresh_current_view(self):
         """Actualiza la vista actual (útil cuando cambian las fuentes)"""
-        if self.current_view_name:
-            # Limpiar cache de la vista actual
-            if self.current_view_name in self.loaded_views:
-                self.current_view.hide()
-                self.current_view.frame.destroy()
-                del self.loaded_views[self.current_view_name]
-            
-            # Recargar la vista
-            self._load_view(self.current_view_name)
+        # Guardar el nombre de la vista actual
+        current_name = self.current_view_name
+        
+        # Limpiar TODO el caché para forzar la recreación de todas las vistas
+        self.clear_cache()
+        
+        # Recargar la vista actual
+        if current_name:
+            self.current_view_name = None  # Forzar recarga
+            self.show_view(current_name)
     
     def get_current_view(self):
         """Retorna la vista actual"""
         return self.current_view
+    
+    def get_view(self, view_name):
+        """Retorna una vista específica del cache"""
+        return self.loaded_views.get(view_name)
+    
+    # Método público para escribir en la consola de presentación (lo puede usar cualquier vista)
+    def print_console(self, text: str):
+        """
+        Envía un mensaje a la consola de PresentacionView (si existe).
+        Si la vista aún no se ha cargado, simplemente ignora el mensaje.
+        """
+        presentacion_view = self.get_view('Presentación')
+        if presentacion_view:
+            presentacion_view.printConsoleLn(text)
     
     def clear_cache(self):
         """Limpia el cache de vistas (útil para desarrollo)"""
@@ -153,4 +174,12 @@ class ViewController:
                 view.frame.destroy()
         self.loaded_views.clear()
         self.current_view = None
-        self.current_view_name = None
+        # No limpiar current_view_name aquí para poder recargar
+    
+    def set_current_file(self, current_file):
+        """Setea el valor del archivo actual con las instrucciones por ejecutar"""
+        self.current_file = current_file
+    
+    def get_current_file(self):
+        """Retorna el archivo actual con las instrucciones por ejecutar"""
+        return self.current_file

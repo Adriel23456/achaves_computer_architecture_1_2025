@@ -5,6 +5,7 @@ main.py - Punto de entrada principal de la aplicación
 import os
 import sys
 import json
+import struct
 from pathlib import Path
 
 # Configurar el directorio base de la aplicación
@@ -13,10 +14,11 @@ sys.path.insert(0, str(BASE_DIR))
 
 # Importar después de configurar el path
 from GUI.view_base import Application
+from ExtraPrograms.cpu_info_excel import CPUInfoExcel
 
 def ensure_config_exists():
     """Asegura que el archivo de configuración exista con valores por defecto"""
-    config_path = BASE_DIR / "Assets" / "config.json"
+    config_path = BASE_DIR / "assets" / "config.json"
     
     # Crear directorios si no existen
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -48,13 +50,18 @@ def ensure_config_exists():
     return config_path
 
 def main():
+    # Inicializar la clase de información de CPU
+    cpu_excel = CPUInfoExcel()
+    
+    #cpu_excel.write_dynamic_memory("0x0", "0xDEADBEEF")
+    
     """Función principal de la aplicación"""
     # Asegurar que la configuración existe
     config_path = ensure_config_exists()
     
     # Crear y ejecutar la aplicación
-    app = Application(BASE_DIR, config_path)
+    app = Application(BASE_DIR, config_path, cpu_excel)
     app.run()
-
+    
 if __name__ == "__main__":
     main()
