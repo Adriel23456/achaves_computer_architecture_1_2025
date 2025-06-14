@@ -279,58 +279,113 @@ class CPUView:
         return True
     
     def _on_execute_cycle(self):
-        """Maneja el evento de ejecutar un ciclo"""
-        #Paso 0: Asegurar la existencia de memoria de instrucciones y archivo de instrucciones
+        """Maneja el evento de ejecutar un ciclo - VERSIÓN CORREGIDA"""
+        # Paso 0: Asegurar la existencia de memoria de instrucciones y archivo de instrucciones
         instruction_mem_path = Path(self.base_dir) / "assets" / "instruction_mem.bin"
         if not self._load_instructions_if_needed() or not instruction_mem_path.exists():
             self.controller.print_console(
                 "[ERROR] Fallo en la detección de memoria de instrucción o archivo de instrucciones")
             return
         
-        # Paso 1  ▸ Avanzar el pipeline una etapa
-        _, fetch_prev   = self.cpu_excel.read_state_fetch()
-        self.cpu_excel.write_state_decode(fetch_prev)
-        _, decode_prev  = self.cpu_excel.read_state_decode()
-        self.cpu_excel.write_state_execute(decode_prev)
-        _, exec_prev    = self.cpu_excel.read_state_execute()
-        self.cpu_excel.write_state_memory(exec_prev)
-        _, mem_prev     = self.cpu_excel.read_state_memory()
-        self.cpu_excel.write_state_writeBack(mem_prev)
+        # Paso 1: Inicializar procesador si no existe
+        if not hasattr(self, 'cpu_instance'):
+            self.cpu_instance = Procesador(controller=self.controller)
+            self.controller.print_console("[CPU] Procesador inicializado")
         
-        # Calcular la nueva instruccion del Fetch
-        _, pcf_raw = self.cpu_excel.read_pcf()
-        # Normalizar a entero sin signo
-        try:
-            if isinstance(pcf_raw, int):
-                pcf_val = pcf_raw & 0xFFFFFFFF
-            else:
-                pcf_val = int(str(pcf_raw), 0) & 0xFFFFFFFF
-        except Exception:
-            pcf_val = 0
-        line_idx   = pcf_val // 8
-        fetch_value = self._instructions_cache[line_idx] if 0 <= line_idx < len(self._instructions_cache) else "NOP"
-        self.cpu_excel.write_state_fetch(fetch_value)
-
-        self.cpu_excel.table.execute_all()
-    
-        #Paso 2: Cargar memorias y señales, desde el excel, al ejecutador
+        # Paso 2: Cargar estado actual desde Excel al procesador
         self._load_from_excel_to_executor()
         
-        #Paso 3: Ejecutar SOLO 1 ciclo, pero si es un SWI en writeback entonces no hacer nada!
-        if hasattr(self, 'cpu_instance'):
-            # Verificar si hay SWI en writeback
-            _, wb_instr = self.cpu_excel.read_state_writeBack()
-            if wb_instr and "SWI" not in str(wb_instr):
-                self.cpu_instance.pipeline.step()
-            else:
-                self.controller.print_console("[CPU] SWI detectado en WriteBack, ciclo omitido")
+        # Paso 3: Sincronizar el pipeline del procesador con Excel
+        # IMPORTANTE: Reconstruir el estado del pipeline basándose en las instrucciones en Excel
+        self._sync_processor_pipeline_with_excel()
         
-        #Paso 4: Cargar todas las señales y memorias de vuelta al excel
+        # Paso 4: Ejecutar UN ciclo del procesador
+        _, wb_instr = self.cpu_excel.read_state_writeBack()
+        if wb_instr and "SWI" not in str(wb_instr):
+            self.cpu_instance.pipeline.step()
+            self.controller.print_console("[CPU] Ciclo ejecutado")
+        else:
+            self.controller.print_console("[CPU] SWI detectado en WriteBack, ciclo omitido")
+            return
+        
+        # Paso 5: Guardar el estado actualizado del procesador a Excel
         self._save_from_executor_to_excel()
         
-        #Paso 5:Actualizar diagrama, memorias y señales
+        # Paso 6: Actualizar el pipeline en Excel basándose en el estado del procesador
+        self._update_excel_pipeline_from_processor()
+        
+        # Paso 7: Ejecutar todos los cambios pendientes en Excel
+        self.cpu_excel.table.execute_all()
+        
+        # Paso 8: Actualizar todas las vistas
         self._update_all_views()
-        self.controller.print_console("[CPU] Se ejecutó un ciclo")
+
+    def _sync_processor_pipeline_with_excel(self):
+        """Sincroniza el pipeline del procesador con las instrucciones actuales en Excel"""
+        if not hasattr(self, 'cpu_instance'):
+            return
+        
+        pipeline = self.cpu_instance.pipeline
+        
+        # Leer las instrucciones actuales del Excel
+        _, fetch_instr = self.cpu_excel.read_state_fetch()
+        _, decode_instr = self.cpu_excel.read_state_decode()
+        _, execute_instr = self.cpu_excel.read_state_execute()
+        _, memory_instr = self.cpu_excel.read_state_memory()
+        _, writeback_instr = self.cpu_excel.read_state_writeBack()
+        
+        self.controller.print_console(f"[SYNC] Pipeline Excel: F={fetch_instr} D={decode_instr} E={execute_instr} M={memory_instr} W={writeback_instr}")
+        
+        # Para instrucciones en DECODE, necesitamos decodificarlas y cargar en ID/EX
+        if decode_instr and decode_instr != "NOP":
+            # Buscar la instrucción en el cache
+            for idx, cached_instr in enumerate(self._instructions_cache):
+                if cached_instr == decode_instr:
+                    # Reconstruir el estado de DECODE
+                    pc = idx * 8
+                    # Leer la instrucción binaria de la memoria de instrucciones
+                    instruction = self.cpu_instance.instruction_memory.read(pc)
+                    
+                    # Crear registro IF/ID simulado
+                    pipeline.if_id = {
+                        "pc": pc,
+                        "instruction": instruction
+                    }
+                    
+                    # Forzar decodificación
+                    self.controller.print_console(f"[SYNC] Forzando decodificación de {decode_instr} en PC=0x{pc:08X}")
+                    break
+
+    def _update_excel_pipeline_from_processor(self):
+        """Actualiza el pipeline en Excel basándose en el estado actual del procesador"""
+        if not hasattr(self, 'cpu_instance'):
+            return
+        
+        pipeline = self.cpu_instance.pipeline
+        
+        # Mapear el estado del procesador de vuelta a instrucciones textuales
+        # Esto es necesario para mantener la sincronización
+        
+        # Para FETCH: usar el PC actual
+        current_pc = self.cpu_instance.pc.get_pc()
+        idx = current_pc // 8
+        if 0 <= idx < len(self._instructions_cache):
+            fetch_instr = self._instructions_cache[idx]
+        else:
+            fetch_instr = "NOP"
+        
+        # Leer las instrucciones actuales para no perderlas
+        _, decode_current = self.cpu_excel.read_state_decode()
+        _, execute_current = self.cpu_excel.read_state_execute()
+        _, memory_current = self.cpu_excel.read_state_memory()
+        _, writeback_current = self.cpu_excel.read_state_writeBack()
+        
+        # Avanzar el pipeline
+        self.cpu_excel.write_state_fetch(fetch_instr)
+        self.cpu_excel.write_state_decode(decode_current if decode_current else "NOP")
+        self.cpu_excel.write_state_execute(execute_current if execute_current else "NOP")
+        self.cpu_excel.write_state_memory(memory_current if memory_current else "NOP")
+        self.cpu_excel.write_state_writeBack("NOP")  # WB se completa
     
     def _on_execute_all(self):
         """Ejecuta todo el programa con máxima velocidad"""

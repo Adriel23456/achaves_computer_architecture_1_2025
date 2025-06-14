@@ -53,6 +53,8 @@
 	STR w4, D[w3, #0]
 	STR w5, D[w3, #4]
 	ADDI w3, w3, #8
+	NOP
+	NOP
 	SUBI w2, w2, #1
 	BNE .Lblock_Loop
 	NOP

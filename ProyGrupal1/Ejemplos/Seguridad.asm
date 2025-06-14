@@ -16,12 +16,13 @@ NOP
 NOP
 NOP
 NOP
-MOVI w1, #1
+MOVI w3, #0
 NOP
 NOP
 NOP
 NOP
-ADDS w5, w1, k0.0
+LDR w4, D[w3, #0]
+LDR w5, D[w3, #4]
 NOP
 NOP
 NOP

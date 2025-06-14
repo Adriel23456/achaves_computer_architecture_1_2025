@@ -327,9 +327,9 @@ def encode_instruction(tokens, label_table=None, current_index= None):
         for _ in range(4):
             binaries.append(encode_instruction([('OPCODE', 'NOP')]))
 
-        # ADD W5, W3, W8
+        # ADD W5, W5, W8
         binaries.append(encode_instruction([
-            ('OPCODE', 'ADD'), ('REG', 'W5'), ('COMMA', ','), ('REG', 'W3'), ('COMMA', ','), ('REG', 'W8')
+            ('OPCODE', 'ADD'), ('REG', 'W5'), ('COMMA', ','), ('REG', 'W5'), ('COMMA', ','), ('REG', 'W8')
         ]))
 
         # SUBI W7, W7, #1
