@@ -345,8 +345,8 @@ def encode_instruction(tokens, label_table=None, current_index= None):
         binaries = []
         kword = tokens[3][1] if len(tokens) > 3 else 'k0'  # Por defecto k0
 
-        # NOP x4
-        for _ in range(4):
+        # NOP x2
+        for _ in range(2):
             binaries.append(encode_instruction([('OPCODE', 'NOP')]))
 
         # LSLI W8, W4, #4
@@ -423,11 +423,11 @@ def encode_instruction(tokens, label_table=None, current_index= None):
         for _ in range(4):
             binaries.append(encode_instruction([('OPCODE', 'NOP')]))
 
-        # SUB W3, W3, W8
+        # SUB W5, W5, W8
         binaries.append(encode_instruction([
             ('OPCODE', 'SUB'),
-            ('REG', 'W3'), ('COMMA', ','),
-            ('REG', 'W3'), ('COMMA', ','),
+            ('REG', 'W5'), ('COMMA', ','),
+            ('REG', 'W5'), ('COMMA', ','),
             ('REG', 'W8')
         ]))
         return binaries
@@ -437,6 +437,10 @@ def encode_instruction(tokens, label_table=None, current_index= None):
     elif op == 'TEAD' and tokens[1][1] == '#4':
         binaries = []
         kword = tokens[3][1] if len(tokens) > 3 else 'k0'  # Por defecto k0
+
+                # 4 NOPs
+        for _ in range(4):
+            binaries.append(encode_instruction([('OPCODE', 'NOP')]))
 
         # LSLI W8, W5, #4
         binaries.append(encode_instruction([
@@ -458,9 +462,8 @@ def encode_instruction(tokens, label_table=None, current_index= None):
             ('KWORD', f'{kword}.0')
         ]))
 
-        # ADD W9, W3, W6
-        binaries.append(encode_instruction([('OPCODE', 'ADD'), ('REG', 'W9'), ('COMMA', ','), ('REG', 'W3'), ('COMMA', ','), ('REG', 'W6')]))
-        
+        # ADD W9, W5, W6
+        binaries.append(encode_instruction([('OPCODE', 'ADD'), ('REG', 'W9'), ('COMMA', ','), ('REG', 'W5'), ('COMMA', ','), ('REG', 'W6')]))
 
         return binaries
     

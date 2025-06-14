@@ -32,10 +32,6 @@
 .Lblock_Loop:
 	LDR w4, D[w3, #0]
 	LDR w5, D[w3, #4]
-	NOP
-	NOP
-	NOP
-	NOP
 	TEA #0, #0xC6EF3720
 .Lloop:
 	TEAD #1, k0
@@ -60,4 +56,8 @@
 	NOP
 	NOP
 .Ldone:
+	NOP
+	NOP
+	NOP
+	NOP
 	SWI
