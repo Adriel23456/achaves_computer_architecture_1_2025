@@ -288,8 +288,6 @@ class TableControl:
             print("⚠ No hay acciones pendientes en la cola")
             return 0
         
-        print(f"\n🚀 Ejecutando {total_actions} acciones pendientes...")
-        
         while not self.action_queue.empty():
             try:
                 action = self.action_queue.get_nowait()
@@ -300,8 +298,6 @@ class TableControl:
                 break
             except Exception as e:
                 print(f"✗ Error ejecutando acción: {e}")
-        
-        print(f"✓ {executed} acciones ejecutadas")
         return executed
     
     def execute_reads_only(self):

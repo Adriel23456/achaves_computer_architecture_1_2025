@@ -410,6 +410,8 @@ class CPUView:
             
             # Ejecutar ciclos sin actualizar Excel ni UI
             for cycle in range(max_cycles):
+                print(f"Current cycle: {cycle}")
+                
                 # Verificar condiciones de parada DIRECTAMENTE en el procesador
                 pipeline = self.cpu_instance.pipeline
                 

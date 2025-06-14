@@ -41,7 +41,6 @@ class CondUnit:
 
         self._handle_branching(BranchOpE, nzcv)                # pasa nzcv
         self._handle_security(LogOutE, ComSE, LoginBlockE, ALUFlagsOut)
-        print(f"[COND] BranchOp={BranchOpE:03b} CondExE={self.CondExE}")
 
     def _handle_branching(self, BranchOpE: int, nzcv: int):
         """
@@ -82,13 +81,8 @@ class CondUnit:
         # CRÍTICO: Sincronizar con el objeto Flags del procesador
         if S1 == 1 and S2 == 1:
             self.flags.login()  # Esto actualiza S1 y S2 en el objeto Flags compartido
-            print("[COND] Login exitoso - Flags S1/S2 activados")
         elif LogOutE == 1:
             self.flags.logout()  # Esto limpia S1 y S2 en el objeto Flags compartido
-            print("[COND] Logout - Flags S1/S2 desactivados")
         
         # Actualizar SafeFlagsOut para reflejar el estado actual
         self.SafeFlagsOut = (self.flags.S1 << 1) | self.flags.S2
-        
-        # Para debug
-        print(f"[COND] SafeFlagsOut={self.SafeFlagsOut:02b} (S1={self.flags.S1}, S2={self.flags.S2})")

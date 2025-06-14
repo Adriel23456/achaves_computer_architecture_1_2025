@@ -58,9 +58,6 @@ class Pipeline:
             "pc": current_pc,
             "instruction": instruction
         }
-
-        # Mensaje de depuración
-        print(f"FETCH | PC: 0x{current_pc:08X} | Instruction: {instruction:064b}")
         
     def decode(self):
         if self.if_id is None:
@@ -199,8 +196,6 @@ class Pipeline:
         # Log de seguridad si hubo violación
         if security_violation:
             print(security_msg)
-            
-        print(f"ID : instr=0x{instr:016X} op={op:02X} sp={special:01X} rd={rd} ar1={ar1} ar2={ar2} imm={imm32:#010X}")
 
     def execute(self):
         if not self.id_ex:
@@ -218,7 +213,6 @@ class Pipeline:
 
         # Calcular carry_in desde FlagsE
         flags_e = self.id_ex["FlagsE"]
-        print(f"[EXEC] FlagsE_in = {flags_e:04b}")   
         carry_in = (flags_e >> 1) & 0b1
 
         # Ejecutar ALU
@@ -235,8 +229,6 @@ class Pipeline:
             nzcv,
             flags_e,
         )
-        print(f"[EXEC] Flags' = {self.flags.as_nzcv():04b}")
-        print(f"[EXEC] SafeFlags = S1={self.flags.S1}, S2={self.flags.S2}")
         
         # Calcular PCSrc modificado
         pcsrc_m = ctrl["PCSrc"] & self.cond_unit.CondExE
@@ -264,7 +256,6 @@ class Pipeline:
         n, z, c, v = alu_flags_out
         if (self.id_ex.get("opcode") == 0x2F):    
             self.halt_requested = True
-        print(f"EX  | ALUOut={result:#010X} | Flags[NZCV]={n}{z}{c}{v}")
 
     def mem(self):
         if not self.ex_mem:
@@ -345,7 +336,6 @@ class Pipeline:
         # Si corresponde salto condicional, actualizar PC
         self.pc.result_w = alu_out
         self.pc.pcsrc_w = ctrl["PCSrc"]
-        print(f"WB | rd={rd} <- {alu_out:#X}")
 
     def step(self):
         # 1. Ejecutar etapas del ciclo actual
@@ -387,7 +377,6 @@ class Pipeline:
         
         # 6. Halt por SWI
         if getattr(self, "halt_requested", False):
-            print("### SWI: ejecución detenida ###")
             self.if_id = self.id_ex = self.ex_mem = self.mem_wb = None
             self.next_if_id = self.next_id_ex = self.next_ex_mem = self.next_mem_wb = None
 
