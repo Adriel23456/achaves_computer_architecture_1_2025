@@ -1,4 +1,4 @@
-# GUI/Views/cpu.py ─ Vista del CPU con diagrama interactivo
+# GUI/Views/cpu.py ─ Vista del CPU optimizada para velocidad extrema
 import time
 from pathlib import Path, PurePath
 import tkinter as tk
@@ -33,6 +33,10 @@ class CPUView:
         self.diagram       = None
         self.memory_table  = None
         self.signals_table = None
+        
+        # ── CACHE para optimización ─────────────────────────────────────────
+        self._instructions_cache = None
+        self._current_file_cache = None
 
         # ── construcción de la UI principal ──────────────────────────────────
         self._create_ui()
@@ -254,25 +258,34 @@ class CPUView:
                 except:
                     child.configure(bg=colors['bg'], fg=colors['fg'])
     
+    # ═════════════════════════════════════════════════════════════════════
+    #  MÉTODOS DE CACHE PARA OPTIMIZACIÓN
+    # ═════════════════════════════════════════════════════════════════════
+    def _load_instructions_if_needed(self):
+        """Carga las instrucciones solo si el archivo cambió o no está en cache"""
+        current_file = self.controller.get_current_file()
+        
+        # Si el archivo cambió o no hay cache, recargar
+        if current_file != self._current_file_cache or self._instructions_cache is None:
+            try:
+                with open(current_file, encoding="utf-8") as f:
+                    all_lines = [ln.strip() for ln in f.readlines() if ln.strip()]
+                # Filtrar etiquetas
+                self._instructions_cache = [ln for ln in all_lines if not ln.startswith('.')]
+                self._current_file_cache = current_file
+            except Exception as e:
+                self.controller.print_console(f"[ERROR] No se pudo leer el archivo de instrucciones: {e}")
+                return False
+        return True
+    
     def _on_execute_cycle(self):
         """Maneja el evento de ejecutar un ciclo"""
         #Paso 0: Asegurar la existencia de memoria de instrucciones y archivo de instrucciones
-        current_file = self.controller.get_current_file() #Archivo de las instrucciones en crudo
         instruction_mem_path = Path(self.base_dir) / "Assets" / "instruction_mem.bin"
-        if not current_file or not Path(current_file).exists() or not instruction_mem_path.exists():
+        if not self._load_instructions_if_needed() or not instruction_mem_path.exists():
             self.controller.print_console(
                 "[ERROR] Fallo en la detección de memoria de instrucción o archivo de instrucciones")
             return
-        
-        # Lista limpia de instrucciones fuente (líneas no vacías, sin \n)
-        try:
-            with open(current_file, encoding="utf-8") as f:
-                all_lines = [ln.strip() for ln in f.readlines() if ln.strip()]
-        except Exception as e:
-            self.controller.print_console(f"[ERROR] No se pudo leer el archivo de instrucciones: {e}")
-            return
-        # Filtramos las etiquetas (líneas que empiezan con '.')
-        instructions = [ln for ln in all_lines if not ln.startswith('.')]
         
         # Paso 1  ▸ Avanzar el pipeline una etapa
         _, fetch_prev   = self.cpu_excel.read_state_fetch()
@@ -295,7 +308,7 @@ class CPUView:
         except Exception:
             pcf_val = 0
         line_idx   = pcf_val // 8
-        fetch_value = instructions[line_idx] if 0 <= line_idx < len(instructions) else "NOP"
+        fetch_value = self._instructions_cache[line_idx] if 0 <= line_idx < len(self._instructions_cache) else "NOP"
         self.cpu_excel.write_state_fetch(fetch_value)
 
         self.cpu_excel.table.execute_all()
@@ -320,74 +333,161 @@ class CPUView:
         self.controller.print_console("[CPU] Se ejecutó un ciclo")
     
     def _on_execute_all(self):
-        """Maneja el evento de ejecutar todo"""
-        #Paso 0: Asegurar la existencia de memoria de instrucciones y archivo de instrucciones
-        from pathlib import Path, PurePath
+        """Ejecuta todo el programa con máxima velocidad"""
         start_time = time.time()
-        current_file = self.controller.get_current_file() #Archivo de las instrucciones en crudo
+        
+        # Validación inicial
         instruction_mem_path = Path(self.base_dir) / "Assets" / "instruction_mem.bin"
-        if not current_file or not Path(current_file).exists() or not instruction_mem_path.exists():
+        if not self._load_instructions_if_needed() or not instruction_mem_path.exists():
             self.controller.print_console(
                 "[ERROR] Fallo en la detección de memoria de instrucción o archivo de instrucciones")
             return
         
-        # Lista limpia de instrucciones fuente (líneas no vacías, sin \n)
-        try:
-            with open(current_file, encoding="utf-8") as f:
-                instructions_src = [ln.strip() for ln in f.readlines() if ln.strip()]
-        except Exception as e:
-            self.controller.print_console(f"[ERROR] No se pudo leer el archivo de instrucciones: {e}")
-            return
-        
-        #Paso 1: Cargar memorias y señales, desde el excel, al ejecutador
+        # Cargar estado inicial desde Excel
         self._load_from_excel_to_executor()
         
-        #Paso 2: Ejecutar hasta que no existan mas instrucciones o sea, si es un SWI en writeback entonces no hacer nada!
+        # ═══════════════════════════════════════════════════════════════
+        # OPTIMIZACIÓN CRÍTICA: Ejecutar TODO sin actualizar Excel/UI
+        # ═══════════════════════════════════════════════════════════════
         if hasattr(self, 'cpu_instance'):
-            max_cycles = 1000
+            max_cycles = 15000
+            cycles_executed = 0
+            
+            # Ejecutar ciclos sin actualizar Excel ni UI
             for cycle in range(max_cycles):
-                # Verificar si hay SWI en alguna etapa
+                # Verificar condiciones de parada DIRECTAMENTE en el procesador
+                pipeline = self.cpu_instance.pipeline
+                
+                # Verificar SWI en pipeline
                 has_swi = False
-                for state_reader in ['read_state_fetch', 'read_state_decode', 
-                                'read_state_execute', 'read_state_memory', 
-                                'read_state_writeBack']:
-                    _, instr = getattr(self.cpu_excel, state_reader)()
-                    if instr and "SWI" in str(instr):
-                        has_swi = True
-                        break
+                if pipeline.mem_wb and pipeline.mem_wb.get("opcode") == 0x2F:
+                    has_swi = True
                 
                 if has_swi:
-                    self.controller.print_console("[CPU] SWI detectado, deteniendo ejecución")
+                    self.controller.print_console(f"[CPU] SWI detectado, deteniendo ejecución después de {cycles_executed} ciclos")
                     break
-                    
+                
                 # Ejecutar un ciclo del procesador
-                self.cpu_instance.pipeline.step()
+                pipeline.step()
+                cycles_executed += 1
                 
                 # Verificar si el pipeline está vacío
-                pipeline = self.cpu_instance.pipeline
                 if all(stage is None for stage in (
                     pipeline.if_id, pipeline.id_ex, 
                     pipeline.ex_mem, pipeline.mem_wb
                 )):
-                    self.controller.print_console("[CPU] Pipeline vacío, ejecución completa")
+                    self.controller.print_console(f"[CPU] Pipeline vacío después de {cycles_executed} ciclos")
                     break
+            
+            # ═══════════════════════════════════════════════════════════════
+            # ACTUALIZAR EXCEL Y UI SOLO UNA VEZ AL FINAL
+            # ═══════════════════════════════════════════════════════════════
+            
+            # Sincronizar estado del pipeline con Excel
+            self._sync_pipeline_to_excel()
+            
+            # Guardar estado final al Excel
+            self._save_from_executor_to_excel()
+            
+            # Si terminó con SWI, actualizar el pipeline en Excel
+            if has_swi:
+                self.cpu_excel.write_state_fetch('NOP')
+                self.cpu_excel.write_state_decode('NOP')
+                self.cpu_excel.write_state_execute('SWI')
+                self.cpu_excel.write_state_memory('NOP')
+                self.cpu_excel.write_state_writeBack('NOP')
+            else:
+                # Pipeline vacío
+                self.cpu_excel.write_state_fetch('NOP')
+                self.cpu_excel.write_state_decode('NOP')
+                self.cpu_excel.write_state_execute('NOP')
+                self.cpu_excel.write_state_memory('NOP')
+                self.cpu_excel.write_state_writeBack('NOP')
+            
+            self.cpu_excel.table.execute_all()
+            
+            # Actualizar vistas una sola vez
+            self._update_all_views()
+            
+            elapsed = time.time() - start_time
+            self.controller.print_console(f"[CPU] Se ejecutaron {cycles_executed} ciclos en {elapsed:.3f} segundos")
+            self.controller.print_console(f"[PERFORMANCE] {cycles_executed/elapsed:.0f} ciclos/segundo")
+    
+    def _sync_pipeline_to_excel(self):
+        """Sincroniza el estado actual del pipeline con Excel basándose en PC y instrucciones"""
+        if not hasattr(self, 'cpu_instance'):
+            return
+            
+        pipeline = self.cpu_instance.pipeline
         
-        #Paso 3: Cargar todas las señales y memorias de vuelta al excel
-        self._save_from_executor_to_excel()
+        # Obtener las instrucciones en cada etapa del pipeline
+        fetch_instr = 'NOP'
+        decode_instr = 'NOP'
+        execute_instr = 'NOP'
+        memory_instr = 'NOP'
+        writeback_instr = 'NOP'
         
-        #Paso 4:Actualizar cual seria la ultima posicion del pipeline
-        self.cpu_excel.write_state_fetch('NOP')
-        self.cpu_excel.write_state_decode('NOP')
-        self.cpu_excel.write_state_execute('SWI')
-        self.cpu_excel.write_state_memory('NOP')
-        self.cpu_excel.write_state_writeBack('NOP')
-        self.cpu_excel.table.execute_all()
+        # Para cada etapa, intentar mapear de vuelta a la instrucción original
+        if pipeline.if_id:
+            pc = pipeline.if_id.get("pc", 0)
+            idx = pc // 8
+            if 0 <= idx < len(self._instructions_cache):
+                decode_instr = self._instructions_cache[idx]
         
-        #Paso 4:Actualizar diagrama, memorias y señales
-        self._update_all_views()
-        self.controller.print_console("[CPU] Se ejecutó todo el programa restante")
-        elapsed = time.time() - start_time
-        self.controller.print_console(f"[TIMER] Ejecución duró {elapsed:.3f} segundos")
+        if pipeline.id_ex:
+            # El ID/EX contiene la instrucción decodificada hace 1 ciclo
+            # Necesitamos rastrear esto basándonos en el opcode
+            op = pipeline.id_ex.get("opcode", 0)
+            execute_instr = self._opcode_to_instruction(op)
+        
+        if pipeline.ex_mem:
+            # Similar para EX/MEM
+            memory_instr = self._guess_instruction_from_stage(pipeline.ex_mem)
+        
+        if pipeline.mem_wb:
+            # Similar para MEM/WB
+            writeback_instr = self._guess_instruction_from_stage(pipeline.mem_wb)
+        
+        # Para FETCH, usar el PC actual
+        current_pc = self.cpu_instance.pc.get_pc()
+        idx = current_pc // 8
+        if 0 <= idx < len(self._instructions_cache):
+            fetch_instr = self._instructions_cache[idx]
+        
+        # Actualizar Excel con las instrucciones
+        self.cpu_excel.write_state_fetch(fetch_instr)
+        self.cpu_excel.write_state_decode(decode_instr)
+        self.cpu_excel.write_state_execute(execute_instr)
+        self.cpu_excel.write_state_memory(memory_instr)
+        self.cpu_excel.write_state_writeBack(writeback_instr)
+    
+    def _opcode_to_instruction(self, opcode):
+        """Mapea un opcode a su mnemónico de instrucción"""
+        # Tabla básica de opcodes a instrucciones
+        opcode_map = {
+            0x00: "ADD", 0x01: "ADDS", 0x02: "SUB", 0x03: "ADC",
+            0x04: "SBC", 0x05: "MUL", 0x06: "DIV", 0x07: "AND",
+            0x08: "ORR", 0x09: "EOR", 0x0A: "BIC", 0x0B: "LSL",
+            0x0C: "LSR", 0x0D: "ASR", 0x0E: "ROR", 0x0F: "ADDI",
+            0x10: "SUBI", 0x11: "ADCI", 0x12: "SBCI", 0x13: "MULI",
+            0x14: "DIVI", 0x15: "ANDI", 0x16: "ORRI", 0x17: "EORI",
+            0x18: "BICI", 0x19: "LSLI", 0x1A: "LSRI", 0x1B: "ASRI",
+            0x1C: "RORI", 0x1D: "MOV", 0x1E: "MVN", 0x1F: "MOVI",
+            0x20: "MVNI", 0x21: "CMP", 0x22: "CMPS", 0x23: "CMN",
+            0x24: "TST", 0x25: "TEQ", 0x26: "CMPI", 0x27: "CMNI",
+            0x28: "TSTI", 0x29: "TEQI", 0x2A: "B", 0x2B: "BEQ",
+            0x2C: "BNE", 0x2D: "BLT", 0x2E: "BGT", 0x2F: "SWI",
+            0x30: "NOP", 0x31: "LDR", 0x32: "STR", 0x33: "LDRB",
+            0x34: "STRB", 0x35: "PRINTI", 0x36: "PRINTS", 0x37: "PRINTB",
+            0x38: "LOGOUT", 0x39: "STRK", 0x3A: "STRPASS"
+        }
+        return opcode_map.get(opcode, "NOP")
+    
+    def _guess_instruction_from_stage(self, stage_data):
+        """Intenta deducir la instrucción basándose en los datos de la etapa"""
+        # Este es un método simplificado - podrías mejorar el rastreo
+        # almacenando el opcode en cada etapa del pipeline
+        return "NOP"
         
     def _parse_excel_value(self, data_type, value):
         """
@@ -564,8 +664,6 @@ class CPUView:
                 instructions = self._bin_to_prog_list(str(instruction_mem_path))
                 cpu.instruction_memory.load(instructions, start_addr=0)
             
-            self.controller.print_console("[CPU] Estado cargado desde Excel al procesador")
-            
         except Exception as e:
             self.controller.print_console(f"[ERROR] Error cargando estado: {e}")
             import traceback
@@ -653,43 +751,8 @@ class CPUView:
                 for block in cpu.dynamic_memory._mem:
                     f.write(struct.pack('<Q', block & 0xFFFFFFFFFFFFFFFF))
             
-            self.controller.print_console("[CPU] Estado guardado del procesador al Excel")
-            
         except Exception as e:
             self.controller.print_console(f"[ERROR] Error guardando estado: {e}")
-    
-    def _debug_authentication_state(self):
-        """Función auxiliar para depurar el estado de autenticación"""
-        if not hasattr(self, 'cpu_instance'):
-            return
-        
-        cpu = self.cpu_instance
-        self.controller.print_console("\n[DEBUG] Estado de Autenticación:")
-        
-        # Mostrar registros R1-R8
-        for i in range(1, 9):
-            val = cpu.register_file.regs[i]
-            self.controller.print_console(f"  R{i} = 0x{val:08X} ({val})")
-        
-        # Mostrar contenido de LoginMemory (P1-P8)
-        self.controller.print_console("\n[DEBUG] LoginMemory (Contraseñas):")
-        for i in range(8):
-            try:
-                # Necesitamos L=1 para leer sin S1/S2
-                val = cpu.login_memory._mem[i]  # Acceso directo para debug
-                self.controller.print_console(f"  P{i+1} (índice {i}) = 0x{val:08X} ({val})")
-            except:
-                pass
-        
-        # Mostrar flags
-        flags = cpu.flags
-        self.controller.print_console(f"\n[DEBUG] Flags: N={flags.N} Z={flags.Z} C={flags.C} V={flags.V}")
-        self.controller.print_console(f"[DEBUG] SafeFlags: S1={flags.S1} S2={flags.S2}")
-        
-        # Mostrar estado de autenticación
-        auth = cpu.cond_unit.auth_process
-        self.controller.print_console(f"[DEBUG] Intentos: {auth.try_counter}/15")
-        self.controller.print_console(f"[DEBUG] Bloques validados: {bin(auth.get_block_states())}")
     
     # ═════════════════════════════════════════════════════════════════════
     #  Reiniciar CPU (nueva función pública)
@@ -704,6 +767,10 @@ class CPUView:
             del self.cpu_instance
         self.cpu_instance = Procesador(controller=self.controller)
         self.controller.print_console("[CPU] Procesador reinicializado")
+        
+        # Limpiar cache
+        self._instructions_cache = None
+        self._current_file_cache = None
 
         # 2. Restablecer pipeline y PC en el Excel
         self.cpu_excel.write_state_fetch('NOP')

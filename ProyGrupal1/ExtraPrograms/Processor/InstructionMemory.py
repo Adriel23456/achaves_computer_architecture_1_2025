@@ -2,7 +2,6 @@
 from __future__ import annotations
 from typing import List
 
-
 class InstructionMemory:
     """
     Instruction Memory (ROM) de 64-bits:
