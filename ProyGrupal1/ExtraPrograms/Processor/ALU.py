@@ -130,12 +130,27 @@ class ALU:
                 C_out = (A >> (shift - 1)) & 1
 
         elif op == 0b001100:  # ASR (signed)
-            shift = B
+            # Sólo usamos los 5 bits bajos de B para el shift
+            shift = B & 0x1F
+
+            # Convertimos A a signed 32 bits
             a_signed = ctypes.c_int32(A).value
-            if shift >= 32:
-                res = -1 if a_signed < 0 else 0
-            else:
+
+            # Ejecutamos el desplazamiento aritmético
+            if shift == 0:
+                # Sin desplazamiento: resultado idéntico a A
+                res = A & MASK32
+                # Convención: no modificamos C_out (queda en su valor previo o 0)
+                # aquí dejamos C_out como estaba (por claridad podrías asignar C_out = C_out)
+            elif shift < 32:
+                # Desplazamiento válido 1–31
                 res = a_signed >> shift
+            else:
+                # Este caso no ocurrirá porque shift está en 0–31,
+                # pero lo mantenemos por completitud
+                res = -1 if a_signed < 0 else 0
+
+            # Carry: el bit que sale justo antes de ser desplazado
             C_out = (A >> (shift - 1)) & 1 if 0 < shift < 32 else 0
 
         elif op == 0b001101:  # ROR
@@ -165,6 +180,3 @@ class ALU:
         Z_out = 1 if (res & MASK32) == 0 else 0
         flags = Flags(N_out, Z_out, C_out & 1, V_out & 1)
         return res & MASK32, flags
-    
-
-

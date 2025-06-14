@@ -68,8 +68,8 @@ def main():
     #print(f"k0[{3}] = {val3}")
     #print(f"k0[{4}] = {val4}")
     
-    #Ejemplos de lectura y escritura (ARREGLAR):
-    #cpu_excel.write_memory_at_address("0x4", "0xDEADBEEF")
+    #Ejemplos de lectura y escritura:
+    #cpu_excel.write_memory_at_address("0x0", "0x00000023")
     #value = cpu_excel.read_memory_at_address("0x1")
     #print("Valor es:")
     #print(value)

@@ -139,9 +139,7 @@ class ControlUnit:
         0b00111001: {"macro":"last", "MemOp":0b11, "PrintEn":0b11, "MemWriteV":0b1}, # STRK (directo)
         0b00111010: {"macro":"last", "MemOp":0b11, "PrintEn":0b11, "MemWriteP":0b1}, # STRPASS (directo)
     }
-
-
-
+    
     # ------------ generación principal -----------------------------
     def generate_signals(self, special: int, op: int):
         self.reset()                              # clean slate
