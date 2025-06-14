@@ -18,7 +18,7 @@ from ExtraPrograms.cpu_info_excel import CPUInfoExcel
 
 def ensure_config_exists():
     """Asegura que el archivo de configuración exista con valores por defecto"""
-    config_path = BASE_DIR / "Assets" / "config.json"
+    config_path = BASE_DIR / "assets" / "config.json"
     
     # Crear directorios si no existen
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -52,7 +52,8 @@ def ensure_config_exists():
 def main():
     # Inicializar la clase de información de CPU
     cpu_excel = CPUInfoExcel()
-    cpu_excel.reset(False) #Resetea la información de CPU al inicio
+    
+    #cpu_excel.write_dynamic_memory("0x0", "0xDEADBEEF")
     
     """Función principal de la aplicación"""
     # Asegurar que la configuración existe

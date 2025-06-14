@@ -1,3 +1,4 @@
+# ExtraPrograms/Processor/PipeLine.py - VERSIÓN SEGURA
 from ExtraPrograms.Processor.PrinterUnit import PrinterUnit
 
 class Pipeline:
@@ -49,7 +50,7 @@ class Pipeline:
         # Obtener dirección actual del Program Counter
         current_pc = self.pc.get_pc()
 
-        # Leer la instrucción en esa dirección (InstructionMemory debe manejar PC en bytes)
+        # Leer la instrucción en esa dirección
         instruction = self.instruction_memory.read(current_pc)
 
         # Cargar valores al buffer del próximo ciclo
@@ -68,84 +69,101 @@ class Pipeline:
         instr = self.if_id["instruction"]
         pc = self.if_id["pc"]
 
-        # 1. Decodificar instrucción (tus bits deben extraerse aquí)
-        # 63:56 — Opcode
+        # 1. Decodificar instrucción
         op = (instr >> 56) & 0xFF            # 8 bits
-
-        # 55:52 — Campo "special"
         special = (instr >> 52) & 0xF        # 4 bits
-
-        # 51:48 — Registro destino
         rd = (instr >> 48) & 0xF             # 4 bits
-
-        # 47:44 — Registro fuente A
         ar1 = (instr >> 44) & 0xF            # 4 bits
-
-        # 43:40 — Registro fuente B
         ar2 = (instr >> 40) & 0xF            # 4 bits
-
-        # 39:8 — Campo inmediato de 32 bits
         imm32 = (instr >> 8) & 0xFFFFFFFF    # 32 bits
 
         # 2. Generar señales de control
         self.control_unit.generate_signals(special, op)
-
-        ctrl = self.control_unit  # atajo para escribir menos
+        ctrl = self.control_unit
+        
         # ── Señal externa L (solo este ciclo) ────────
         L_signal = 1 if ctrl.ComS else 0
 
-
         # 3. Leer registros (según señales)
+        
+        # ══════════════════════════════════════════════════════════
+        # VERIFICACIÓN DE SEGURIDAD PREVIA
+        # ══════════════════════════════════════════════════════════
+        security_violation = False
+        security_msg = ""
+        
+        # Verificar si se intenta acceder a recursos protegidos sin permisos
+        if ctrl.RegisterInA == 0 and self.flags.enabled() != 1:
+            # Intenta leer de registro seguro sin permisos
+            security_violation = True
+            security_msg = f"[SECURITY] Intento de leer registro seguro w{ar1} sin SafeFlags"
+            
+        if ctrl.RegisterInB in [0b01, 0b10] and self.flags.enabled() != 1:
+            # RegisterInB = 01: SafeRegisterFile
+            # RegisterInB = 10: VaultMemory
+            security_violation = True
+            if ctrl.RegisterInB == 0b01:
+                security_msg = f"[SECURITY] Intento de leer registro seguro w{ar2} sin SafeFlags"
+            else:
+                security_msg = f"[SECURITY] Intento de leer VaultMemory[{ar2}] sin SafeFlags"
+                
+        if ctrl.RegisterInB == 0b11 and not (self.flags.enabled() == 1 or L_signal):
+            # LoginMemory necesita SafeFlags O L
+            security_violation = True
+            security_msg = f"[SECURITY] Intento de leer LoginMemory[{ar2}] sin SafeFlags ni L"
 
         # ── Operando A ─────────────────────────────
         if ctrl.RegisterInA == 1:
+            # Registro normal - siempre permitido
             A_intermedio, _ = self.register_file.read(ar1, 0)
         else:
+            # Registro seguro - verificar permisos
             A_intermedio, _ = self.safe_register_file.read(ar1, 0)
+            if A_intermedio == 0 and self.flags.enabled() != 1:
+                print(f"[DECODE] Acceso bloqueado a registro seguro w{ar1}")
 
-        # Luego: si BranchE está activo, se usa PCF_D en lugar de RD1
+        # MUX para branch
         if ctrl.BranchE:
-            A = pc  # ← MUX que selecciona PCF_D
+            A = pc
         else:
             A = A_intermedio
 
         # ── Operando B ─────────────────────────────
-        src_b = ctrl.RegisterInB  # valor de 2 bits
+        src_b = ctrl.RegisterInB
 
-        # B_intermedio: resultado del MUX RegisterInB
         if src_b == 0b00:
+            # Registro normal - siempre permitido
             _, B_intermedio = self.register_file.read(0, ar2)
 
         elif src_b == 0b01:
+            # Registro seguro - verificar permisos
             _, B_intermedio = self.safe_register_file.read(0, ar2)
+            if B_intermedio == 0 and self.flags.enabled() != 1:
+                print(f"[DECODE] Acceso bloqueado a registro seguro w{ar2}")
 
-        elif src_b == 0b10:                # VaultMemory
-            try:
-                B_intermedio = self.vault_memory.read(ar2)
-            except PermissionError as e:
-                print(f"[DECODE] Acceso bloqueado a Vault: {e}")
-                raise
+        elif src_b == 0b10:
+            # VaultMemory - verificar permisos
+            B_intermedio = self.vault_memory.read(ar2)
+            if B_intermedio == 0 and self.flags.enabled() != 1:
+                print(f"[DECODE] Acceso bloqueado a VaultMemory[{ar2}]")
 
-        elif src_b == 0b11:                # LoginMemory
-            try:
-                # IMPORTANTE: ar2 es el índice del bloque de contraseña (0-7)
-                # Usar el valor directo de ar2, no como índice de registro
-                B_intermedio = self.login_memory.read(ar2, L_signal)
-                print(f"[DECODE] LoginMemory read: block[{ar2}] = 0x{B_intermedio:08X}")
-            except PermissionError as e:
-                print(f"[DECODE] Acceso bloqueado a LoginMem: {e}")
-                B_intermedio = 0  # Valor por defecto en caso de error        
+        elif src_b == 0b11:
+            # LoginMemory - verificar permisos (SafeFlags O L)
+            B_intermedio = self.login_memory.read(ar2, L_signal)
+            if B_intermedio == 0 and not (self.flags.enabled() == 1 or L_signal):
+                print(f"[DECODE] Acceso bloqueado a LoginMemory[{ar2}]")
 
-        # MUX final: ImmediateOp decide si usar inmediato directamente
+        # MUX final: ImmediateOp decide si usar inmediato
         if ctrl.ImmediateOp:
             B = imm32
         else:
             B = B_intermedio
 
-        # VaultMemory: ignora `k` (por compatibilidad), guarda `data` si `we` = 1
+        # Intentos de escritura en memorias protegidas
+        # VaultMemory: ignora si no hay permisos
         self.vault_memory.write(ar2, imm32, ctrl.MemWriteV)
-
-        # LoginMemory: guarda WD (inmediato) en la posición A si WE = 1
+        
+        # LoginMemory: ignora si no hay permisos
         self.login_memory.write(ar2, imm32, ctrl.MemWriteP, L_signal)
 
         flags_nzcv = self.flags.as_nzcv()
@@ -156,7 +174,7 @@ class Pipeline:
             "B": B,
             "LoginInBlockD": ar2,
             "rd": rd,
-            "Rd_Special" : B_intermedio,
+            "Rd_Special": B_intermedio,
             "control_signals": {
                 "LogOut": ctrl.LogOut,
                 "ComS": ctrl.ComS,
@@ -174,32 +192,40 @@ class Pipeline:
             },
             "FlagsE": flags_nzcv,
             "opcode": op,
-
+            "security_violation": security_violation,
+            "security_msg": security_msg
         }
-        print(f"ID : instr=0x{instr:016X}  op={op:02X} sp={special:01X} rd={rd} ar1={ar1} ar2={ar2} imm={imm32:#010X}")
+        
+        # Log de seguridad si hubo violación
+        if security_violation:
+            print(security_msg)
+            
+        print(f"ID : instr=0x{instr:016X} op={op:02X} sp={special:01X} rd={rd} ar1={ar1} ar2={ar2} imm={imm32:#010X}")
 
     def execute(self):
         if not self.id_ex:
             return
 
-        # === Cargar info de etapa previa ===
+        # Cargar info de etapa previa
         A = self.id_ex["A"]
         B = self.id_ex["B"]
         login_block_e = self.id_ex["LoginInBlockD"]
         ctrl = self.id_ex["control_signals"]
 
-        # === Calcular carry_in desde FlagsE (6 bits: NZCVSS) ===
-        flags_e  = self.id_ex["FlagsE"]
-        print(f"[EXEC]  FlagsE_in  = {flags_e:04b}")   
-        carry_in = (flags_e >> 1) & 0b1  # bit 1 = Carry
+        # Verificar si hubo violación de seguridad
+        if self.id_ex.get("security_violation", False):
+            print(f"[EXECUTE] {self.id_ex.get('security_msg', 'Security violation')}")
 
-        # === Ejecutar ALU ===
+        # Calcular carry_in desde FlagsE
+        flags_e = self.id_ex["FlagsE"]
+        print(f"[EXEC] FlagsE_in = {flags_e:04b}")   
+        carry_in = (flags_e >> 1) & 0b1
+
+        # Ejecutar ALU
         result, alu_flags_out = self.alu.execute(ctrl["ALUSrc"], A, B, carry_in)
-
         nzcv = (alu_flags_out[0] << 3) | (alu_flags_out[1] << 2) | (alu_flags_out[2] << 1) | alu_flags_out[3]
 
-
-        # === CondUnit: evaluar condición de ejecución segura ===
+        # CondUnit: evaluar condición
         self.cond_unit.generate_signals(
             ctrl["BranchOp"],
             ctrl["LogOut"],
@@ -209,23 +235,24 @@ class Pipeline:
             nzcv,
             flags_e,
         )
-        print(f"[EXEC]  Flags'     = {self.flags.as_nzcv():04b}")
-        # === Calcular PCSrc modificado ===
+        print(f"[EXEC] Flags' = {self.flags.as_nzcv():04b}")
+        print(f"[EXEC] SafeFlags = S1={self.flags.S1}, S2={self.flags.S2}")
+        
+        # Calcular PCSrc modificado
         pcsrc_m = ctrl["PCSrc"] & self.cond_unit.CondExE
 
-        # === Solo pasar señales relevantes a MEM stage ===
-        control_signals = {                    # nombres originales
+        # Pasar señales a MEM
+        control_signals = {
             "RegWriteS": ctrl["RegWriteS"],
             "RegWriteR": ctrl["RegWriteR"],
-            "MemOp":     ctrl["MemOp"],
+            "MemOp": ctrl["MemOp"],
             "MemWriteG": ctrl["MemWriteG"],
             "MemWriteD": ctrl["MemWriteD"],
-            "MemByte":   ctrl["MemByte"],
-            "PCSrc":     pcsrc_m,
-            "PrintEn":   ctrl["PrintEn"],
+            "MemByte": ctrl["MemByte"],
+            "PCSrc": pcsrc_m,
+            "PrintEn": ctrl["PrintEn"],
         }
 
-        # === Guardar resultado para MEM stage ===
         self.next_ex_mem = {
             "ALUOut": result,
             "rd": self.id_ex["rd"],
@@ -238,7 +265,6 @@ class Pipeline:
         if (self.id_ex.get("opcode") == 0x2F):    
             self.halt_requested = True
         print(f"EX  | ALUOut={result:#010X} | Flags[NZCV]={n}{z}{c}{v}")
-        print(f"[ALU] code={ctrl["ALUSrc"]:06b} A={A:08X} B={B:08X} => {result:08X} NZCV={alu_flags_out}")
 
     def mem(self):
         if not self.ex_mem:
@@ -249,15 +275,19 @@ class Pipeline:
         rd_special = self.ex_mem["Rd_Special"]
         ctrl = self.ex_mem["control_signals"]
 
-        # ==== Operación de memoria si corresponde ====
+        # Operación de memoria
         alu_out = None
         if ctrl["MemOp"] == 0b00:  # LOAD de memoria general
             alu_out = self.data_memory.read(alu_out_ex)
         elif ctrl["MemOp"] == 0b01:  # LOAD de memoria dinámica
+            # CRÍTICO: La memoria dinámica retornará 0 si no hay permisos
             alu_out = self.dynamic_memory.read(alu_out_ex)
+            if alu_out == 0 and self.flags.enabled() != 1:
+                print(f"[MEM] Lectura de memoria dinámica bloqueada por falta de SafeFlags")
         elif ctrl["MemOp"] == 0b10:
             print("No se espera recibir un MemOP de 10")
 
+        # Preparar datos para escritura
         WD_G = 0
         if ctrl["MemByte"]:
             WD_G = self.extend.uxtb_32_to_32(rd_special)
@@ -265,6 +295,7 @@ class Pipeline:
             WD_G = rd_special
         self.data_memory.write(alu_out_ex, WD_G, ctrl["MemWriteG"])
 
+        # Escritura en memoria dinámica (se bloqueará si no hay permisos)
         WD_D = 0
         if ctrl["MemByte"]:
             WD_D = self.extend.uxtb_32_to_32(rd_special)
@@ -272,22 +303,21 @@ class Pipeline:
             WD_D = rd_special
         self.dynamic_memory.write(alu_out_ex, WD_D, ctrl["MemWriteD"])
 
-
-        control_signals = {                    # nombres originales
+        control_signals = {
             "RegWriteS": ctrl["RegWriteS"],
             "RegWriteR": ctrl["RegWriteR"],
-            "MemByte":   ctrl["MemByte"],
-            "PCSrc":     ctrl["PCSrc"],
-            "PrintEn":   ctrl["PrintEn"],
+            "MemByte": ctrl["MemByte"],
+            "PCSrc": ctrl["PCSrc"],
+            "PrintEn": ctrl["PrintEn"],
         }
         val_wb = alu_out if alu_out is not None else alu_out_ex
 
-        # ==== Guardar resultado para WB ====
         self.next_mem_wb = {
             "ALUOut": val_wb,
             "rd": rd,
             "control_signals": control_signals,
         }
+
     def writeback(self):
         if not self.mem_wb:
             return
@@ -299,11 +329,12 @@ class Pipeline:
         if ctrl["MemByte"]:
             alu_out = self.extend.uxtb_32_to_32(alu_out)
 
-        # === Escritura en registro destino ===
+        # Escritura en registros
         self.register_file.write(rd, alu_out, ctrl["RegWriteR"])
+        # CRÍTICO: La escritura en registro seguro se bloqueará si no hay permisos
         self.safe_register_file.write(rd, alu_out, ctrl["RegWriteS"])
 
-        # === Impresión si corresponde ===
+        # Impresión si corresponde
         if ctrl["PrintEn"] == 0b00:
             self.printer_unit.print_integer(alu_out)
         elif ctrl["PrintEn"] == 0b01:
@@ -311,20 +342,20 @@ class Pipeline:
         elif ctrl["PrintEn"] == 0b10:
             self.printer_unit.print_binary(alu_out)
 
-        # === Si corresponde salto condicional, actualizar PC ===
-        self.pc.result_w = alu_out           # dirección calculada en EX/MEM
-        self.pc.pcsrc_w = ctrl["PCSrc"]  # ya AND-eado con CondExE
+        # Si corresponde salto condicional, actualizar PC
+        self.pc.result_w = alu_out
+        self.pc.pcsrc_w = ctrl["PCSrc"]
         print(f"WB | rd={rd} <- {alu_out:#X}")
 
     def step(self):
-        # === 1. Ejecutar etapas del ciclo actual ===
+        # 1. Ejecutar etapas del ciclo actual
         self.writeback()
         self.mem()
         self.execute()
         self.decode()
         self.fetch()
 
-        # === 2. Aplicar avance de registros entre etapas ===
+        # 2. Aplicar avance de registros entre etapas
         self.if_id = self.next_if_id
         self.id_ex = self.next_id_ex
         self.ex_mem = self.next_ex_mem
@@ -335,7 +366,7 @@ class Pipeline:
         self.next_ex_mem = None
         self.next_mem_wb = None
 
-        # === 3. Flanco de reloj para módulos sincronizados ===
+        # 3. Flanco de reloj para módulos sincronizados
         self.pc.tick()
         self.register_file.tick()
         self.safe_register_file.tick()
@@ -344,19 +375,19 @@ class Pipeline:
         self.data_memory.tick()
         self.dynamic_memory.tick()
 
-        # === 4. Verificar salto condicional después del tick ===
+        # 4. Verificar salto condicional después del tick
         branch_taken = bool(self.pc.pcsrc_w)
         if branch_taken:
             self.if_id = None
             self.id_ex = None
-            self.next_if_id = None  # ← también este, para evitar fetch basura
+            self.next_if_id = None
 
-        # === 5. Actualizar contador de ciclos ===
+        # 5. Actualizar contador de ciclos
         self.clock_cycle += 1
+        
         # 6. Halt por SWI
         if getattr(self, "halt_requested", False):
             print("### SWI: ejecución detenida ###")
-            # Vaciar registros para que run_all detecte pipeline vacío
             self.if_id = self.id_ex = self.ex_mem = self.mem_wb = None
             self.next_if_id = self.next_id_ex = self.next_ex_mem = self.next_mem_wb = None
 
@@ -365,3 +396,4 @@ class Pipeline:
         self.id_ex = None
         self.ex_mem = None
         self.mem_wb = None
+        

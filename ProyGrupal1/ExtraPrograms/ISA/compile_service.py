@@ -7,7 +7,7 @@ from pathlib import Path
 
 def compile_text_to_binary(asm_text, print_callback=None, base_dir=None):
     """
-    Compila código ASM a binario y lo guarda en Assets/instruction_mem.bin.
+    Compila código ASM a binario y lo guarda en assets/instruction_mem.bin.
     
     Args:
         asm_text: Texto del código ASM
@@ -137,7 +137,7 @@ def compile_text_to_binary(asm_text, print_callback=None, base_dir=None):
         bytes_data = value.to_bytes(8, byteorder='big')
         binary_data.extend(bytes_data)
     
-    # Guardar en Assets/instruction_mem.bin
+    # Guardar en assets/instruction_mem.bin
     if base_dir is None:
         # Auto-detectar el directorio base
         current_file = Path(__file__).resolve()
@@ -147,10 +147,10 @@ def compile_text_to_binary(asm_text, print_callback=None, base_dir=None):
         base_dir = Path(base_dir)
     
     # Crear ruta de destino
-    target_path = base_dir / "Assets" / "instruction_mem.bin"
+    target_path = base_dir / "assets" / "instruction_mem.bin"
     
     try:
-        # Crear directorio Assets si no existe
+        # Crear directorio assets si no existe
         target_path.parent.mkdir(exist_ok=True)
         
         # Escribir el archivo binario

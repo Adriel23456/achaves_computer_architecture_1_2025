@@ -93,7 +93,7 @@ Este conjunto de instrucciones (ISA) está diseñado para arquitecturas de 64 bi
 4. **Generación de binario**:
 
    * Convierte cada cadena de bits a entero y a 8 bytes big-endian.
-   * Guarda resultado en `Assets/instruction_mem.bin`.
+   * Guarda resultado en `assets/instruction_mem.bin`.
 
 **5. Ventajas y Aplicaciones**
 

@@ -29,3 +29,4 @@ class PrinterUnit:
 
     def print_binary(self, value: int):
         self.controller.print_console(f"[BIN] {value:032b}")
+        

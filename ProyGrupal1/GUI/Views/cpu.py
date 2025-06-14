@@ -281,7 +281,7 @@ class CPUView:
     def _on_execute_cycle(self):
         """Maneja el evento de ejecutar un ciclo"""
         #Paso 0: Asegurar la existencia de memoria de instrucciones y archivo de instrucciones
-        instruction_mem_path = Path(self.base_dir) / "Assets" / "instruction_mem.bin"
+        instruction_mem_path = Path(self.base_dir) / "assets" / "instruction_mem.bin"
         if not self._load_instructions_if_needed() or not instruction_mem_path.exists():
             self.controller.print_console(
                 "[ERROR] Fallo en la detección de memoria de instrucción o archivo de instrucciones")
@@ -337,7 +337,7 @@ class CPUView:
         start_time = time.time()
         
         # Validación inicial
-        instruction_mem_path = Path(self.base_dir) / "Assets" / "instruction_mem.bin"
+        instruction_mem_path = Path(self.base_dir) / "assets" / "instruction_mem.bin"
         if not self._load_instructions_if_needed() or not instruction_mem_path.exists():
             self.controller.print_console(
                 "[ERROR] Fallo en la detección de memoria de instrucción o archivo de instrucciones")
@@ -350,7 +350,7 @@ class CPUView:
         # OPTIMIZACIÓN CRÍTICA: Ejecutar TODO sin actualizar Excel/UI
         # ═══════════════════════════════════════════════════════════════
         if hasattr(self, 'cpu_instance'):
-            max_cycles = 15000
+            max_cycles = 1500000
             cycles_executed = 0
             
             # Ejecutar ciclos sin actualizar Excel ni UI
@@ -417,7 +417,7 @@ class CPUView:
         """Sincroniza el estado actual del pipeline con Excel basándose en PC y instrucciones"""
         if not hasattr(self, 'cpu_instance'):
             return
-            
+        
         pipeline = self.cpu_instance.pipeline
         
         # Obtener las instrucciones en cada etapa del pipeline
@@ -647,19 +647,25 @@ class CPUView:
             # 8. CARGAR MEMORIAS DINÁMICAS (desde archivos .bin)
             # ═══════════════════════════════════════════════════════════════
             
-            # Memoria dinámica
-            dynamic_mem_path = Path(self.base_dir) / "Assets" / "dynamic_mem.bin"
+            dynamic_mem_path = Path(self.base_dir) / "assets" / "dynamic_mem.bin"
             if dynamic_mem_path.exists():
-                with open(dynamic_mem_path, 'rb') as f:
+                with open(dynamic_mem_path, "rb") as f:
                     data = f.read()
-                    # Cargar en bloques de 64 bits (8 bytes)
-                    for i in range(0, min(len(data), 512), 8):  # Max 64 bloques x 8 bytes
-                        if i + 8 <= len(data):
-                            block_data = struct.unpack('<Q', data[i:i+8])[0]
-                            cpu.dynamic_memory._mem[i//8] = block_data
+
+                # Cantidad de bloques presentes en el archivo
+                blocks_loaded = max(1, len(data) // 8)          # 8 bytes por bloque
+                cpu.dynamic_memory._loaded_blocks = blocks_loaded
+
+                # Copiar al arreglo interno (máx. 64 bloques = 512 bytes)
+                for i in range(0, min(len(data), 512), 8):
+                    block = struct.unpack("<Q", data[i : i + 8])[0]
+                    cpu.dynamic_memory._mem[i // 8] = block
+            else:
+                # Primera ejecución: solo 1 bloque “real”
+                cpu.dynamic_memory._loaded_blocks = 1
             
             # Memoria de instrucciones
-            instruction_mem_path = Path(self.base_dir) / "Assets" / "instruction_mem.bin"
+            instruction_mem_path = Path(self.base_dir) / "assets" / "instruction_mem.bin"
             if instruction_mem_path.exists():
                 instructions = self._bin_to_prog_list(str(instruction_mem_path))
                 cpu.instruction_memory.load(instructions, start_addr=0)
@@ -746,10 +752,11 @@ class CPUView:
             # ═══════════════════════════════════════════════════════════════
             
             # Guardar memoria dinámica
-            dynamic_mem_path = Path(self.base_dir) / "Assets" / "dynamic_mem.bin"
-            with open(dynamic_mem_path, 'wb') as f:
-                for block in cpu.dynamic_memory._mem:
-                    f.write(struct.pack('<Q', block & 0xFFFFFFFFFFFFFFFF))
+            dynamic_mem_path = Path(self.base_dir) / "assets" / "dynamic_mem.bin"
+            blocks_to_save = getattr(cpu.dynamic_memory, "_loaded_blocks", 64)
+            with open(dynamic_mem_path, "wb") as f:
+                for block in cpu.dynamic_memory._mem[:blocks_to_save]:
+                    f.write(struct.pack("<Q", block & 0xFFFFFFFFFFFFFFFF))
             
         except Exception as e:
             self.controller.print_console(f"[ERROR] Error guardando estado: {e}")

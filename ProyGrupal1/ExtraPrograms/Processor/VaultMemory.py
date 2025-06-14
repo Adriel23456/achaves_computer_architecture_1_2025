@@ -1,80 +1,62 @@
-# vault_memory.py
+# ═══════════════════════════════════════════════════════════════════════════
+# VaultMemory.py - VERSIÓN SEGURA
+# ═══════════════════════════════════════════════════════════════════════════
 from typing import List, Optional
 from ExtraPrograms.Processor.Flags import Flags
 
-# ─── Parámetros de la memoria ─────────────────────────────
 BLOCK_BITS  = 32
 NUM_BLOCKS  = 16
-BLOCK_MASK  = (1 << BLOCK_BITS) - 1  # 0xFFFFFFFF
-
-# ─── Índices base de cada clave de 128 bits ───────────────
-KEY0, KEY1, KEY2, KEY3 = 0, 4, 8, 12   # 4 bloques por clave (0-3, 4-7, …)
+BLOCK_MASK  = (1 << BLOCK_BITS) - 1
 
 class VaultMemory:
     """
-    Vault Memory protegida (16 × 32 bits = 512 bits).
-
-    • Acceso solo si flags.enabled() == 1   (S1 == S2 == 1)
-    • Escrituras se latchean en _pending y se comiten en tick()
-    • Lectura es combinacional (como en tu RegisterFile.read)
+    Vault Memory protegida (16 × 32 bits).
+    • Acceso SOLO si flags.enabled() == 1 (S1 == S2 == 1)
+    • Si no hay permisos, retorna 0 en lectura y bloquea escritura
     """
 
     def __init__(self, flags: Flags):
-        self._flags        = flags
+        self._flags = flags
         self._mem: List[int] = [0] * NUM_BLOCKS
+        self._pending: Optional[tuple[int, int]] = None
 
-        # ---------------- Señales de acceso ----------------
-        self._pending: Optional[tuple[int, int]] = None  # (idx, data) latched
-
-    # ───────────────────────────────────────────────────────
-    # Lectura (combinacional)
-    # ───────────────────────────────────────────────────────
     def read(self, k: int) -> int:
-        """Devuelve el bloque k si S1/S2 están activos; combinacional."""
-        enabled = self._flags.enabled()
-        if enabled != 1:
-            print(f"[VAULT] Lectura denegada: S1={self._flags.S1}, S2={self._flags.S2}, enabled={enabled}")
-            raise PermissionError("Lectura denegada: S1/S2 inactivos.")
+        """Lee bloque k. Retorna 0 si no hay permisos."""
+        # CRÍTICO: Verificar permisos
+        if self._flags.enabled() != 1:
+            print(f"[VAULT] Lectura BLOQUEADA: S1={self._flags.S1}, S2={self._flags.S2}")
+            return 0  # Retornar 0 en lugar de lanzar excepción
+        
         idx = k & 0xF
         if idx >= NUM_BLOCKS:
-            raise IndexError("Dirección fuera de rango (0-15)")
+            print(f"[VAULT] Dirección fuera de rango: {idx}")
+            return 0
+            
         return self._mem[idx]
 
-    # ───────────────────────────────────────────────────────
-    # Escritura (latched)
-    # ───────────────────────────────────────────────────────
     def write(self, k: int, data: int, we: int):
-        """
-        k    : dirección de bloque (0-15)
-        data : entero de 32 bits
-        we   : 1 = solicitar escritura
-        """
+        """Escribe en bloque k. Se bloquea si no hay permisos."""
         if not we:
             return
-        enabled = self._flags.enabled()
-        if enabled != 1:
-            print(f"[VAULT] Escritura denegada: S1={self._flags.S1}, S2={self._flags.S2}, enabled={enabled}")
-            raise PermissionError("Escritura denegada: S1/S2 inactivos.")
+            
+        # CRÍTICO: Verificar permisos
         if self._flags.enabled() != 1:
-            raise PermissionError("Escritura denegada: S1/S2 inactivos.")
-        if not (0 <= data <= BLOCK_MASK):
-            raise ValueError(f"data debe ser un entero de {BLOCK_BITS} bits.")
+            print(f"[VAULT] Escritura BLOQUEADA: S1={self._flags.S1}, S2={self._flags.S2}")
+            return  # No hacer nada
+        
         idx = k & 0xF
         if idx >= NUM_BLOCKS:
-            raise IndexError("Dirección fuera de rango (0-15)")
-        self._pending = (idx, data)
+            print(f"[VAULT] Dirección fuera de rango: {idx}")
+            return
+            
+        self._pending = (idx, data & BLOCK_MASK)
 
-    # ───────────────────────────────────────────────────────
-    # Flanco de reloj  (commit de la escritura pendiente)
-    # ───────────────────────────────────────────────────────
     def tick(self):
         if self._pending is not None:
             idx, data = self._pending
             self._mem[idx] = data
-            self._pending = None  # se consume
+            self._pending = None
 
-    # ───────────────────────────────────────────────────────
-    # Debug opcional
-    # ───────────────────────────────────────────────────────
     def dump(self) -> List[int]:
         return self._mem.copy()
+    

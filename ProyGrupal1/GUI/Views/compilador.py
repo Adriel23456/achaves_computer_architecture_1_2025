@@ -358,10 +358,10 @@ class CompiladorView:
             )
     
     def _on_grammar(self):
-        """Muestra la gramática desde el archivo Assets/SecureCPU.g4"""
+        """Muestra la gramática desde el archivo assets/SecureCPU.g4"""
         try:
             # Construir ruta al archivo de gramática
-            grammar_path = Path(self.base_dir) / "Assets" / "SecureCPU.g4"
+            grammar_path = Path(self.base_dir) / "assets" / "SecureCPU.g4"
             
             # Verificar que el archivo existe
             if not grammar_path.exists():
@@ -425,10 +425,10 @@ class CompiladorView:
             with open(file_path, 'rb') as f:
                 binary_content = f.read()
             
-            # 3. Copiar a Assets/instruction_mem.bin
-            target_path = Path(self.base_dir) / "Assets" / "instruction_mem.bin"
+            # 3. Copiar a assets/instruction_mem.bin
+            target_path = Path(self.base_dir) / "assets" / "instruction_mem.bin"
             
-            # Crear directorio Assets si no existe
+            # Crear directorio assets si no existe
             target_path.parent.mkdir(exist_ok=True)
             
             # Escribir el contenido binario

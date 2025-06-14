@@ -1329,7 +1329,7 @@ class CPUInfoExcel:
             # Construir ruta al archivo
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir = current_dir.parent
-            bin_file = parent_dir / "Assets" / "dynamic_mem.bin"
+            bin_file = parent_dir / "assets" / "dynamic_mem.bin"
             
             # Si no existe el archivo, retornar 0
             if not bin_file.exists():
@@ -1380,7 +1380,7 @@ class CPUInfoExcel:
             # Construir ruta
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir = current_dir.parent
-            assets_dir = parent_dir / "Assets"
+            assets_dir = parent_dir / "assets"
             bin_file = assets_dir / "dynamic_mem.bin"
             
             # Crear directorio si no existe
@@ -1437,7 +1437,7 @@ class CPUInfoExcel:
             # Construir ruta al archivo
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir = current_dir.parent
-            bin_file = parent_dir / "Assets" / "instruction_mem.bin"
+            bin_file = parent_dir / "assets" / "instruction_mem.bin"
             
             # Si no existe el archivo, retornar 0
             if not bin_file.exists():

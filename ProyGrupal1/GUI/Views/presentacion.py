@@ -149,10 +149,10 @@ class PresentacionView:
             # Construir ruta al archivo dynamic_mem.bin
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir = current_dir.parent.parent
-            assets_dir = parent_dir / "Assets"
+            assets_dir = parent_dir / "assets"
             bin_file = assets_dir / "dynamic_mem.bin"
             
-            # Crear directorio Assets si no existe
+            # Crear directorio assets si no existe
             os.makedirs(assets_dir, exist_ok=True)
             
             # Escribir los datos al archivo binario
@@ -288,7 +288,7 @@ class PresentacionView:
             # 2) Verificar archivo
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir = current_dir.parent.parent
-            bin_file = parent_dir / "Assets" / "dynamic_mem.bin"
+            bin_file = parent_dir / "assets" / "dynamic_mem.bin"
 
             if not bin_file.exists():
                 self.console.printConsoleLn("[ERROR] No se encontró dynamic_mem.bin.")
@@ -358,7 +358,7 @@ class PresentacionView:
             # 2) Verificar que existe el archivo de memoria dinámica
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir  = current_dir.parent.parent
-            bin_file    = parent_dir / "Assets" / "dynamic_mem.bin"
+            bin_file    = parent_dir / "assets" / "dynamic_mem.bin"
 
             if not bin_file.exists():
                 self.console.printConsoleLn("[ERROR] No se encontró dynamic_mem.bin. "

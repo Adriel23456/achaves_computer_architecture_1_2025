@@ -1,59 +1,56 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# LoginMemory.py - VERSIÓN SEGURA
+# ═══════════════════════════════════════════════════════════════════════════
 from __future__ import annotations
 from typing import List, Optional
 from ExtraPrograms.Processor.Flags import Flags
 
-# Parámetros
 BLOCK_BITS  = 32
 NUM_BLOCKS  = 8
-BLOCK_MASK  = (1 << BLOCK_BITS) - 1      # 0xFFFFFFFF
+BLOCK_MASK  = (1 << BLOCK_BITS) - 1
 
 class LoginMemory:
     """
     Login Memory protegida (8 × 32 bits).
-
-    • Lectura  y escritura permitidas si:
-        · flags.enabled()      == 1   (S1 == S2 == 1)
-          ── o ──
-        · flags.login_active() == 1   (L == 1)
-
-    • Interfaz síncrona estilo RegisterFile:
-        · read(A)                        → dato combinacional
-        · write(A, WD, WE)               → latch
-        · tick()                         → commit en flanco
+    • Lectura permitida si: flags.enabled() == 1 O L == 1
+    • Escritura permitida si: flags.enabled() == 1
+    • Si no hay permisos, retorna 0 en lectura y bloquea escritura
     """
 
     def __init__(self, flags: Flags):
         self._flags = flags
         self._mem: List[int] = [0] * NUM_BLOCKS
-
-        # búfer escritura pendiente: (idx, data) o None
         self._pending: Optional[tuple[int, int]] = None
 
-    # Lectura combinacional
     def read(self, A: int, L: int = 0) -> int:
-        if not (self._flags.enabled() == 1 or L):
-            raise PermissionError("Lectura denegada: requiere L o S1/S2.")
+        """Lee bloque A. Retorna 0 si no hay permisos."""
+        # Verificar permisos: necesita S1/S2 O flag L
+        if not (self._flags.enabled() == 1 or L == 1):
+            print(f"[LOGIN] Lectura BLOQUEADA: S1={self._flags.S1}, S2={self._flags.S2}, L={L}")
+            return 0  # Retornar 0 en lugar de lanzar excepción
+        
         idx = A & 0x7
         return self._mem[idx]
 
-    # Solicitud de escritura (latched)
     def write(self, A: int, WD: int, WE: int, L: int = 0):
+        """Escribe en bloque A. Solo con SafeFlags activos."""
         if not WE:
             return
-        if not (self._flags.enabled() == 1 or L):
-            raise PermissionError("Escritura denegada: requiere L o S1/S2.")
-        if not (0 <= WD <= BLOCK_MASK):
-            raise ValueError(f"Dato excede {BLOCK_BITS} bits.")
+            
+        # CRÍTICO: Escritura SOLO con SafeFlags (NO con L)
+        if self._flags.enabled() != 1:
+            print(f"[LOGIN] Escritura BLOQUEADA: S1={self._flags.S1}, S2={self._flags.S2}")
+            return  # No hacer nada
+        
         idx = A & 0x7
         self._pending = (idx, WD & BLOCK_MASK)
 
-    # Flanco de reloj (commit)
     def tick(self):
         if self._pending is not None:
             idx, data = self._pending
             self._mem[idx] = data
             self._pending = None
 
-    # Depuración
     def dump(self) -> List[int]:
         return self._mem.copy()
+    

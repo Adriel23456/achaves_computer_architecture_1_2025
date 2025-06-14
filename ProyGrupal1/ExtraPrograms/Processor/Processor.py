@@ -89,3 +89,4 @@ class Procesador:
             for i, val in enumerate(state_dict['registers']):
                 if i < 16:
                     self.register_file.regs[i] = val
+

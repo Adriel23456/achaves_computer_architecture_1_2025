@@ -65,10 +65,10 @@ class TableControl:
         # Usar ruta absoluta basada en la ubicación de este archivo
         current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
         parent_dir = current_dir.parent  # Subir un nivel desde ExtraPrograms
-        assets_dir = parent_dir / "Assets"
+        assets_dir = parent_dir / "assets"
 
         # Si se pasa un filename relativo, convertirlo a absoluto
-        if filename is None or filename == "Assets/table_data.xlsx":
+        if filename is None or filename == "assets/table_data.xlsx":
             self.filename = str(assets_dir / "table_data.xlsx")
         else:
             # Si es una ruta relativa, hacerla absoluta respecto al parent_dir
@@ -81,7 +81,7 @@ class TableControl:
         self.workbook = None
         self.worksheet = None
         
-        # Crear directorio Assets si no existe
+        # Crear directorio assets si no existe
         os.makedirs(assets_dir, exist_ok=True)
         
         # Inicializar archivo Excel
@@ -120,7 +120,7 @@ class TableControl:
             # Si el archivo está abierto, intentar guardar con otro nombre
             current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
             parent_dir = current_dir.parent
-            backup_name = str(parent_dir / "Assets" / "table_data_temp.xlsx")
+            backup_name = str(parent_dir / "assets" / "table_data_temp.xlsx")
             self.workbook.save(backup_name)
             print(f"⚠ Archivo principal bloqueado, guardado en: {backup_name}")
         except Exception as e:
