@@ -405,7 +405,7 @@ class CPUView:
         # OPTIMIZACIÓN CRÍTICA: Ejecutar TODO sin actualizar Excel/UI
         # ═══════════════════════════════════════════════════════════════
         if hasattr(self, 'cpu_instance'):
-            max_cycles = 1500000
+            max_cycles = 10000000
             cycles_executed = 0
             
             # Ejecutar ciclos sin actualizar Excel ni UI
@@ -706,20 +706,18 @@ class CPUView:
             
             dynamic_mem_path = Path(self.base_dir) / "assets" / "dynamic_mem.bin"
             if dynamic_mem_path.exists():
-                with open(dynamic_mem_path, "rb") as f:
-                    data = f.read()
+                data = dynamic_mem_path.read_bytes()
+                blocks_loaded = max(1, len(data) // 8)
 
-                # Cantidad de bloques presentes en el archivo
-                blocks_loaded = max(1, len(data) // 8)          # 8 bytes por bloque
-                cpu.dynamic_memory._loaded_blocks = blocks_loaded
+                cpu.dynamic_memory.set_size(blocks_loaded)   # ← NUEVO
+                cpu.dynamic_memory._pending.clear()          # limpia por si acaso
 
-                # Copiar al arreglo interno (máx. 64 bloques = 512 bytes)
-                for i in range(0, min(len(data), 512), 8):
-                    block = struct.unpack("<Q", data[i : i + 8])[0]
-                    cpu.dynamic_memory._mem[i // 8] = block
+                # Copiar todo el archivo, sin tope de 64
+                for i in range(blocks_loaded):
+                    block = struct.unpack_from("<Q", data, i * 8)[0]
+                    cpu.dynamic_memory._mem[i] = block
             else:
-                # Primera ejecución: solo 1 bloque “real”
-                cpu.dynamic_memory._loaded_blocks = 1
+                cpu.dynamic_memory.set_size(1)
             
             # Memoria de instrucciones
             instruction_mem_path = Path(self.base_dir) / "assets" / "instruction_mem.bin"
@@ -821,9 +819,8 @@ class CPUView:
             
             # Guardar memoria dinámica
             dynamic_mem_path = Path(self.base_dir) / "assets" / "dynamic_mem.bin"
-            blocks_to_save = getattr(cpu.dynamic_memory, "_loaded_blocks", 64)
             with open(dynamic_mem_path, "wb") as f:
-                for block in cpu.dynamic_memory._mem[:blocks_to_save]:
+                for block in cpu.dynamic_memory.dump():
                     f.write(struct.pack("<Q", block & 0xFFFFFFFFFFFFFFFF))
             
         except Exception as e:
