@@ -1839,10 +1839,10 @@ class CPUInfoExcel:
             self.write_attempts_available("0b0000")
             
             # Write numérico de llaves criptograficas (valores iniciales) usando funciones
-            self.write_k0_0("0x00000000")
-            self.write_k0_1("0x00000000")
-            self.write_k0_2("0x00000000")
-            self.write_k0_3("0x00000000")
+            self.write_k0_0("0xDEADBEEF")
+            self.write_k0_1("0xDEADBEEF")
+            self.write_k0_2("0xDEADBEEF")
+            self.write_k0_3("0xDEADBEEF")
             self.write_k1_0("0x00000000")
             self.write_k1_1("0x00000000")
             self.write_k1_2("0x00000000")

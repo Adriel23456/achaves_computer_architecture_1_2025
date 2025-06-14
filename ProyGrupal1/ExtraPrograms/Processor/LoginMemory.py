@@ -36,19 +36,20 @@ class LoginMemory:
         """Escribe en bloque A. Solo con SafeFlags activos."""
         if not WE:
             return
-            
-        # CRÍTICO: Escritura SOLO con SafeFlags (NO con L)
         if self._flags.enabled() != 1:
             print(f"[LOGIN] Escritura BLOQUEADA: S1={self._flags.S1}, S2={self._flags.S2}")
-            return  # No hacer nada
-        
+            return
         idx = A & 0x7
         self._pending = (idx, WD & BLOCK_MASK)
+        # ─── NUEVO LOG ────────────────────────────────────────────
+        print(f"[LOGIN] ★ escritura latcheada P{idx+1} <- 0x{WD & BLOCK_MASK:08X}")
 
     def tick(self):
         if self._pending is not None:
             idx, data = self._pending
             self._mem[idx] = data
+            # ─── CONFIRMACIÓN ─────────────────────────────────────
+            print(f"[LOGIN] ✔ P{idx+1} <= 0x{data:08X} (commit)")
             self._pending = None
 
     def dump(self) -> List[int]:

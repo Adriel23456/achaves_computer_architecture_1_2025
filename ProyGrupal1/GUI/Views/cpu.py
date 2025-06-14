@@ -723,6 +723,17 @@ class CPUView:
             for i in range(64):
                 value = cpu.data_memory._mem[i]
                 self.cpu_excel.write_memory_block(i, value, "hex")
+                
+            # 3.5 ─── GUARDAR VAULT MEMORY (k0.0 … k3.3)
+            for k in range(4):              # 4 claves
+                for b in range(4):          # 4 bloques cada una
+                    val = cpu.vault_memory._mem[k*4 + b] & 0xFFFFFFFF
+                    getattr(self.cpu_excel, f"write_k{k}_{b}")(f"0x{val:08X}")
+
+            # 3.6 ─── GUARDAR LOGIN MEMORY (P1 … P8)
+            for p in range(8):
+                val = cpu.login_memory._mem[p] & 0xFFFFFFFF
+                getattr(self.cpu_excel, f"write_p{p+1}")(f"0x{val:08X}")
             
             # ═══════════════════════════════════════════════════════════════
             # 4. GUARDAR FLAGS Y ESTADOS

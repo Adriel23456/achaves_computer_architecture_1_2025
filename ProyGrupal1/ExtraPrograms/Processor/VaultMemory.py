@@ -35,26 +35,26 @@ class VaultMemory:
         return self._mem[idx]
 
     def write(self, k: int, data: int, we: int):
-        """Escribe en bloque k. Se bloquea si no hay permisos."""
         if not we:
             return
-            
-        # CRÍTICO: Verificar permisos
         if self._flags.enabled() != 1:
             print(f"[VAULT] Escritura BLOQUEADA: S1={self._flags.S1}, S2={self._flags.S2}")
-            return  # No hacer nada
-        
+            return
         idx = k & 0xF
         if idx >= NUM_BLOCKS:
             print(f"[VAULT] Dirección fuera de rango: {idx}")
             return
-            
+
         self._pending = (idx, data & BLOCK_MASK)
+        # ─── NUEVO LOG ─────────────────────────────────────────────
+        print(f"[VAULT] ★ escritura latcheada K{idx} <- 0x{data & BLOCK_MASK:08X}")
 
     def tick(self):
         if self._pending is not None:
             idx, data = self._pending
             self._mem[idx] = data
+            # ─── CONFIRMACIÓN AL APLICAR EL RELOJ ─────────────────
+            print(f"[VAULT] ✔ K{idx} <= 0x{data:08X} (commit)")
             self._pending = None
 
     def dump(self) -> List[int]:
