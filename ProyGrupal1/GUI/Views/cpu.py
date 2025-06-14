@@ -405,7 +405,7 @@ class CPUView:
         # OPTIMIZACIÓN CRÍTICA: Ejecutar TODO sin actualizar Excel/UI
         # ═══════════════════════════════════════════════════════════════
         if hasattr(self, 'cpu_instance'):
-            max_cycles = 10000000
+            max_cycles = 50000000
             cycles_executed = 0
             
             # Ejecutar ciclos sin actualizar Excel ni UI
