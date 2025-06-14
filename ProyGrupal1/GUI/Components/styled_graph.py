@@ -8,84 +8,63 @@ import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
 class StyledGraph(tk.Frame):
-    """Gráfica estilizada que se adapta al tema de la aplicación"""
+    """Gráfica estilizada que se adapta al tema de la aplicación."""
     def __init__(self, parent, design_manager, title="", **kwargs):
         self.design_manager = design_manager
         colors = design_manager.get_colors()
-        
-        super().__init__(parent, bg=colors['bg'], relief=tk.SOLID, borderwidth=2, **kwargs)
-        self.configure(highlightbackground=colors['button_bg'])
-        self.configure(highlightcolor=colors['select_bg'])
+
+        super().__init__(
+            parent, bg=colors["bg"],
+            relief=tk.SOLID, borderwidth=2, **kwargs
+        )
+        self.configure(highlightbackground=colors["button_bg"])
+        self.configure(highlightcolor=colors["select_bg"])
         self.configure(highlightthickness=1)
-        
-        # Frame del título si se proporciona
+
+        # Título opcional
         if title:
-            title_frame = tk.Frame(self, bg=colors['sidebar_bg'], height=35)
-            title_frame.pack(fill=tk.X)
-            title_frame.pack_propagate(False)
-            
-            title_label = tk.Label(
-                title_frame,
-                text=title,
-                font=design_manager.get_font('bold'),
-                bg=colors['sidebar_bg'],
-                fg=colors['sidebar_button_fg'],
+            bar = tk.Frame(self, bg=colors["sidebar_bg"], height=35)
+            bar.pack(fill=tk.X)
+            bar.pack_propagate(False)
+            tk.Label(
+                bar, text=title,
+                font=design_manager.get_font("bold"),
+                bg=colors["sidebar_bg"], fg=colors["sidebar_button_fg"],
                 padx=10
-            )
-            title_label.pack(side=tk.LEFT, fill=tk.Y)
-        
-        # Frame principal para la gráfica
-        self.graph_frame = tk.Frame(self, bg=colors['bg'])
+            ).pack(side=tk.LEFT, fill=tk.Y)
+
+        # Área para la gráfica
+        self.graph_frame = tk.Frame(self, bg=colors["bg"])
         self.graph_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        # Crear figura de matplotlib
+
         self.figure = None
         self.canvas = None
-        self.ax = None
-        
+        self.ax     = None
         self._create_figure()
-    
+
+    # ------------------------------------------------------------------
     def _create_figure(self):
-        """Crea la figura de matplotlib con el tema actual"""
-        colors = self.design_manager.get_colors()
-        
-        # Determinar colores según el tema
-        if self.design_manager.config['theme']['current'] == 'dark':
-            bg_color = '#1e1e1e'
-            fg_color = '#ffffff'
-            grid_color = '#3a3a3a'
-            face_color = '#2d2d2d'
+        """Crea la figura de matplotlib con estilo del tema."""
+        theme = self.design_manager.config["theme"]["current"]
+        if theme == "dark":
+            bg, fg, grid, face = "#1e1e1e", "#ffffff", "#3a3a3a", "#2d2d2d"
         else:
-            bg_color = '#ffffff'
-            fg_color = '#000000'
-            grid_color = '#e0e0e0'
-            face_color = '#f5f5f5'
-        
-        # Crear figura
-        self.figure = Figure(figsize=(8, 6), dpi=100, facecolor=bg_color)
-        self.ax = self.figure.add_subplot(111, facecolor=face_color)
-        
-        # Configurar estilo del axes
-        self.ax.spines['bottom'].set_color(fg_color)
-        self.ax.spines['top'].set_color(fg_color)
-        self.ax.spines['left'].set_color(fg_color)
-        self.ax.spines['right'].set_color(fg_color)
-        self.ax.tick_params(colors=fg_color, which='both')
-        
-        # Configurar grid
-        self.ax.grid(True, color=grid_color, linestyle='--', alpha=0.5)
-        
-        # Configurar etiquetas
-        self.ax.xaxis.label.set_color(fg_color)
-        self.ax.yaxis.label.set_color(fg_color)
-        self.ax.title.set_color(fg_color)
-        
-        # Crear canvas
+            bg, fg, grid, face = "#ffffff", "#000000", "#e0e0e0", "#f5f5f5"
+
+        self.figure = Figure(figsize=(8, 6), dpi=100, facecolor=bg)
+        self.ax     = self.figure.add_subplot(111, facecolor=face)
+
+        for spine in self.ax.spines.values():
+            spine.set_color(fg)
+        self.ax.tick_params(colors=fg)
+        self.ax.grid(True, color=grid, linestyle="--", alpha=0.5)
+        self.ax.xaxis.label.set_color(fg)
+        self.ax.yaxis.label.set_color(fg)
+        self.ax.title.set_color(fg)
+
         if self.canvas:
             self.canvas.get_tk_widget().destroy()
-        
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.graph_frame)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
@@ -211,17 +190,9 @@ class StyledGraph(tk.Frame):
         self.canvas.draw()
     
     def update_theme(self):
-        """Actualiza los colores cuando cambia el tema"""
         colors = self.design_manager.get_colors()
-        
-        # Actualizar frame
-        self.configure(bg=colors['bg'])
-        self.configure(highlightbackground=colors['button_bg'])
-        self.configure(highlightcolor=colors['select_bg'])
-        
-        self.graph_frame.configure(bg=colors['bg'])
-        
-        # Recrear la figura con los nuevos colores
-        self._create_figure()
-        
-        # Si hay datos, volver a plotear (esto debería manejarlo la vista)
+        self.configure(bg=colors["bg"],
+                       highlightbackground=colors["button_bg"],
+                       highlightcolor=colors["select_bg"])
+        self.graph_frame.configure(bg=colors["bg"])
+        self._create_figure()  # recrea y el caller vuelve a plotear
