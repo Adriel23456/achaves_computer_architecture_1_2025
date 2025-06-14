@@ -1,10 +1,10 @@
-from ExtraPrograms.Processor.PrinterUnit import PrinterUnit  # si está en otro archivo
+from ExtraPrograms.Processor.PrinterUnit import PrinterUnit
 
 class Pipeline:
     def __init__(self, program_counter, instruction_memory,
                  register_file, safe_register_file,
                  data_memory, dynamic_memory, vault_memory, login_memory,
-                 alu, flags, control_unit, cond_unit, extend):
+                 alu, flags, control_unit, cond_unit, extend, controller):
         
         # ─── Módulos principales ────────────────────────────
         self.pc = program_counter
@@ -20,6 +20,7 @@ class Pipeline:
         self.control_unit = control_unit
         self.cond_unit = cond_unit
         self.extend = extend
+        self.printer_unit = PrinterUnit(controller)
 
         # ─── Registros de etapa ─────────────────────────────
         self.if_id = None
@@ -304,11 +305,11 @@ class Pipeline:
 
         # === Impresión si corresponde ===
         if ctrl["PrintEn"] == 0b00:
-            PrinterUnit.print_integer(alu_out)
+            self.printer_unit.print_integer(alu_out)
         elif ctrl["PrintEn"] == 0b01:
-            PrinterUnit.print_ascii(alu_out)
+            self.printer_unit.print_ascii(alu_out)
         elif ctrl["PrintEn"] == 0b10:
-            PrinterUnit.print_binary(alu_out)
+            self.printer_unit.print_binary(alu_out)
 
         # === Si corresponde salto condicional, actualizar PC ===
         self.pc.result_w = alu_out           # dirección calculada en EX/MEM
@@ -364,11 +365,3 @@ class Pipeline:
         self.id_ex = None
         self.ex_mem = None
         self.mem_wb = None
-
-
-
-
-
-        
-
-

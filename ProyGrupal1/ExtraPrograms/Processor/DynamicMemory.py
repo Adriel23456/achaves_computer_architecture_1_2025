@@ -1,68 +1,98 @@
+# ExtraPrograms/Processor/DynamicMemory.py
 from __future__ import annotations
-from typing import List, Optional
+from typing import Dict, List
 from ExtraPrograms.Processor.Flags import Flags
 
 
 class DynamicMemory:
-    def __init__(self, flags: Flags, memory_size: int = 64, block_bits: int = 64):
+    """
+    Memoria dinámica protegida.
+
+    ▸ Direcciones externas en **bytes**.  
+    ▸ Operaciones de palabras de 32 bits (little-endian).  
+    ▸ Accesos permitidos sólo si flags.enabled() == 1.
+    """
+
+    def __init__(self,
+                 flags: Flags,
+                 memory_size: int = 64,      # nº de bloques
+                 block_bits: int = 64):      # bits por bloque (8 bytes)
         self._flags = flags
-        self._memory_size = memory_size          # equivale a NUM_BLOCKS
-        self._block_bits = block_bits            # equivale a BLOCK_BITS
-        self._block_mask = (1 << block_bits) - 1 # equivale a BLOCK_MASK
+        self._mem_size = memory_size
+        self._block_bits = block_bits
+        self._bytes_per_block = block_bits // 8
+        self._block_mask = (1 << block_bits) - 1
 
-        self._mem: List[int] = [0] * self._memory_size
-        self._pending: Optional[tuple[int, int]] = None  # (idx, value)
+        self._mem: List[int] = [0] * self._mem_size          # contenido estable
+        self._pending: Dict[int, int] = {}                   # idx → nuevo valor
 
-    # ─── Getters y Setters de parámetros internos ───────────────────────
+    # ───────────────────────── helpers internas ──────────────────────────
+    def _split_addr(self, addr: int) -> tuple[int, int]:
+        if not (0 <= addr < self._mem_size * self._bytes_per_block):
+            raise ValueError(f"Dirección fuera de rango: {addr}")
+        idx = addr // self._bytes_per_block
+        off = addr %  self._bytes_per_block
+        return idx, off
 
-    def set_memory_size(self, new_size: int):
-        if new_size < len(self._mem):
-            raise ValueError("No se puede reducir el tamaño de memoria existente.")
-        self._memory_size = new_size
-        self._mem.extend([0] * (new_size - len(self._mem)))
+    def _require_auth(self) -> None:
+        if self._flags.enabled() != 1:
+            raise PermissionError("Lectura/Escritura denegada: S1/S2 inactivos.")
 
-    def get_memory_size(self) -> int:
-        return self._memory_size
+    # ───────────────────────────── API pública ───────────────────────────
+    def read(self, A_D: int) -> int:
+        self._require_auth()
 
-    def set_block_bits(self, bits: int):
+        idx, off = self._split_addr(A_D)
+        val = 0
+        for i in range(4):                              # 4 bytes → 32 bits
+            a = A_D + i
+            b_idx, b_off = self._split_addr(a)
+            word = self._mem[b_idx]
+            byte = (word >> (8 * b_off)) & 0xFF
+            val |= byte << (8 * i)
+        return val & 0xFFFFFFFF
+
+    def write(self, A_D: int, WD_D: int, WE_D: int) -> None:
+        if not WE_D:                                    # ⬅️  **cambio clave**
+            return
+        self._require_auth()
+
+        wd = WD_D & 0xFFFFFFFF
+        for i in range(4):
+            addr_byte = A_D + i
+            b_idx, b_off = self._split_addr(addr_byte)
+            byte_val = (wd >> (8 * i)) & 0xFF
+
+            cur = self._pending.get(b_idx, self._mem[b_idx])
+            shift = b_off * 8
+            mask  = 0xFF << shift
+            new_word = (cur & ~mask) | (byte_val << shift)
+            self._pending[b_idx] = new_word & self._block_mask
+
+    def tick(self) -> None:
+        for idx, val in self._pending.items():
+            self._mem[idx] = val
+        self._pending.clear()
+
+    # ───────────────────── Gestión dinámica (opc) ───────────────────────
+    def set_memory_size(self, new_size: int) -> None:
+        if new_size < self._mem_size:
+            raise ValueError("No se puede reducir el tamaño existente.")
+        self._mem.extend([0] * (new_size - self._mem_size))
+        self._mem_size = new_size
+
+    def set_block_bits(self, bits: int) -> None:
+        if bits % 8 != 0:
+            raise ValueError("block_bits debe ser múltiplo de 8.")
         self._block_bits = bits
+        self._bytes_per_block = bits // 8
         self._block_mask = (1 << bits) - 1
 
-    def get_block_bits(self) -> int:
-        return self._block_bits
-
-    def get_block_mask(self) -> int:
-        return self._block_mask
-
-    # ─── Señales principales ─────────────────────────────────────────────
-
-    def read(self, A_D: int) -> int:
-        if self._flags.enabled() != 1:
-            raise PermissionError("Lectura denegada: S1/S2 inactivos.")
-        idx = A_D % self._memory_size
-        return self._mem[idx]
-
-    def write(self, A_D: int, WD_D: int, WE_D: int):
-        if not WE_D:
-            return
-        if self._flags.enabled() != 1:
-            raise PermissionError("Escritura denegada: S1/S2 inactivos.")
-        idx = A_D % self._memory_size
-        data = WD_D & self._block_mask
-        self._pending = (idx, data)
-
-    def tick(self):
-        if self._pending is not None:
-            idx, data = self._pending
-            self._mem[idx] = data
-            self._pending = None
-
-    # ─── Utilidades opcionales ──────────────────────────────────────────
-
+    # ───────────────────────── utilidades ────────────────────────────────
     def dump(self) -> List[int]:
         return self._mem.copy()
 
-    def load(self, values: List[int], base: int = 0):
-        for i, val in enumerate(values):
-            if base + i < self._memory_size:
-                self._mem[base + i] = val & self._block_mask
+    def load(self, values: List[int], base: int = 0) -> None:
+        for i, v in enumerate(values):
+            if base + i < self._mem_size:
+                self._mem[base + i] = v & self._block_mask

@@ -439,7 +439,7 @@ class CPUView:
             # Verificar que tengamos el procesador
             if not hasattr(self, 'cpu_instance'):
                 # Crear instancia del procesador si no existe
-                self.cpu_instance = Procesador()
+                self.cpu_instance = Procesador(controller=self.controller)
                 self.controller.print_console("[CPU] Procesador inicializado")
             
             cpu = self.cpu_instance
@@ -702,7 +702,7 @@ class CPUView:
         # 1. Descartar instancia anterior (si existe) y crear una nueva
         if hasattr(self, 'cpu_instance'):
             del self.cpu_instance
-        self.cpu_instance = Procesador()
+        self.cpu_instance = Procesador(controller=self.controller)
         self.controller.print_console("[CPU] Procesador reinicializado")
 
         # 2. Restablecer pipeline y PC en el Excel

@@ -14,7 +14,7 @@ from ExtraPrograms.Processor.CondUnit import CondUnit
 from ExtraPrograms.Processor.Extend import BinaryZeroExtend
 
 class Procesador:
-    def __init__(self):
+    def __init__(self, controller=None):
         """Crea todas las unidades y engancha el pipeline.
         El orden de instanciación **importa** porque varios módulos
         reciben `flags` en su constructor.
@@ -51,6 +51,7 @@ class Procesador:
             control_unit         = self.control_unit,
             cond_unit            = self.cond_unit,
             extend               = self.extend,
+            controller           = controller
         )
 
     # ------------------------------------------------------------------
