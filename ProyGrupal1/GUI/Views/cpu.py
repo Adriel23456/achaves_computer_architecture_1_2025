@@ -295,11 +295,7 @@ class CPUView:
         # Paso 2: Cargar estado actual desde Excel al procesador
         self._load_from_excel_to_executor()
         
-        # Paso 3: Sincronizar el pipeline del procesador con Excel
-        # IMPORTANTE: Reconstruir el estado del pipeline basándose en las instrucciones en Excel
-        self._sync_processor_pipeline_with_excel()
-        
-        # Paso 4: Ejecutar UN ciclo del procesador
+        # Paso 3: Ejecutar UN ciclo del procesador
         _, wb_instr = self.cpu_excel.read_state_writeBack()
         if wb_instr and "SWI" not in str(wb_instr):
             self.cpu_instance.pipeline.step()
@@ -308,63 +304,22 @@ class CPUView:
             self.controller.print_console("[CPU] SWI detectado en WriteBack, ciclo omitido")
             return
         
-        # Paso 5: Guardar el estado actualizado del procesador a Excel
+        # Paso 4: Guardar el estado actualizado del procesador a Excel
         self._save_from_executor_to_excel()
         
-        # Paso 6: Actualizar el pipeline en Excel basándose en el estado del procesador
+        # Paso 5: Actualizar el pipeline en Excel basándose en el estado del procesador
         self._update_excel_pipeline_from_processor()
         
-        # Paso 7: Ejecutar todos los cambios pendientes en Excel
+        # Paso 6: Ejecutar todos los cambios pendientes en Excel
         self.cpu_excel.table.execute_all()
         
-        # Paso 8: Actualizar todas las vistas
+        # Paso 7: Actualizar todas las vistas
         self._update_all_views()
-
-    def _sync_processor_pipeline_with_excel(self):
-        """Sincroniza el pipeline del procesador con las instrucciones actuales en Excel"""
-        if not hasattr(self, 'cpu_instance'):
-            return
-        
-        pipeline = self.cpu_instance.pipeline
-        
-        # Leer las instrucciones actuales del Excel
-        _, fetch_instr = self.cpu_excel.read_state_fetch()
-        _, decode_instr = self.cpu_excel.read_state_decode()
-        _, execute_instr = self.cpu_excel.read_state_execute()
-        _, memory_instr = self.cpu_excel.read_state_memory()
-        _, writeback_instr = self.cpu_excel.read_state_writeBack()
-        
-        self.controller.print_console(f"[SYNC] Pipeline Excel: F={fetch_instr} D={decode_instr} E={execute_instr} M={memory_instr} W={writeback_instr}")
-        
-        # Para instrucciones en DECODE, necesitamos decodificarlas y cargar en ID/EX
-        if decode_instr and decode_instr != "NOP":
-            # Buscar la instrucción en el cache
-            for idx, cached_instr in enumerate(self._instructions_cache):
-                if cached_instr == decode_instr:
-                    # Reconstruir el estado de DECODE
-                    pc = idx * 8
-                    # Leer la instrucción binaria de la memoria de instrucciones
-                    instruction = self.cpu_instance.instruction_memory.read(pc)
-                    
-                    # Crear registro IF/ID simulado
-                    pipeline.if_id = {
-                        "pc": pc,
-                        "instruction": instruction
-                    }
-                    
-                    # Forzar decodificación
-                    self.controller.print_console(f"[SYNC] Forzando decodificación de {decode_instr} en PC=0x{pc:08X}")
-                    break
 
     def _update_excel_pipeline_from_processor(self):
         """Actualiza el pipeline en Excel basándose en el estado actual del procesador"""
         if not hasattr(self, 'cpu_instance'):
             return
-        
-        pipeline = self.cpu_instance.pipeline
-        
-        # Mapear el estado del procesador de vuelta a instrucciones textuales
-        # Esto es necesario para mantener la sincronización
         
         # Para FETCH: usar el PC actual
         current_pc = self.cpu_instance.pc.get_pc()
@@ -375,17 +330,17 @@ class CPUView:
             fetch_instr = "NOP"
         
         # Leer las instrucciones actuales para no perderlas
-        _, decode_current = self.cpu_excel.read_state_decode()
-        _, execute_current = self.cpu_excel.read_state_execute()
-        _, memory_current = self.cpu_excel.read_state_memory()
-        _, writeback_current = self.cpu_excel.read_state_writeBack()
+        _, decode_current = self.cpu_excel.read_state_fetch()
+        _, execute_current = self.cpu_excel.read_state_decode()
+        _, memory_current = self.cpu_excel.read_state_execute()
+        _, writeback_current = self.cpu_excel.read_state_memory()
         
         # Avanzar el pipeline
+        self.cpu_excel.write_state_decode(decode_current)
+        self.cpu_excel.write_state_execute(execute_current)
+        self.cpu_excel.write_state_memory(memory_current)
+        self.cpu_excel.write_state_writeBack(writeback_current)
         self.cpu_excel.write_state_fetch(fetch_instr)
-        self.cpu_excel.write_state_decode(decode_current if decode_current else "NOP")
-        self.cpu_excel.write_state_execute(execute_current if execute_current else "NOP")
-        self.cpu_excel.write_state_memory(memory_current if memory_current else "NOP")
-        self.cpu_excel.write_state_writeBack("NOP")  # WB se completa
     
     def _on_execute_all(self):
         """Ejecuta todo el programa con máxima velocidad"""
@@ -440,9 +395,6 @@ class CPUView:
             # ACTUALIZAR EXCEL Y UI SOLO UNA VEZ AL FINAL
             # ═══════════════════════════════════════════════════════════════
             
-            # Sincronizar estado del pipeline con Excel
-            self._sync_pipeline_to_excel()
-            
             # Guardar estado final al Excel
             self._save_from_executor_to_excel()
             
@@ -457,7 +409,7 @@ class CPUView:
                 # Pipeline vacío
                 self.cpu_excel.write_state_fetch('NOP')
                 self.cpu_excel.write_state_decode('NOP')
-                self.cpu_excel.write_state_execute('NOP')
+                self.cpu_excel.write_state_execute('SWI')
                 self.cpu_excel.write_state_memory('NOP')
                 self.cpu_excel.write_state_writeBack('NOP')
             
@@ -469,54 +421,6 @@ class CPUView:
             elapsed = time.time() - start_time
             self.controller.print_console(f"[CPU] Se ejecutaron {cycles_executed} ciclos en {elapsed:.3f} segundos")
             self.controller.print_console(f"[PERFORMANCE] {cycles_executed/elapsed:.0f} ciclos/segundo")
-    
-    def _sync_pipeline_to_excel(self):
-        """Sincroniza el estado actual del pipeline con Excel basándose en PC y instrucciones"""
-        if not hasattr(self, 'cpu_instance'):
-            return
-        
-        pipeline = self.cpu_instance.pipeline
-        
-        # Obtener las instrucciones en cada etapa del pipeline
-        fetch_instr = 'NOP'
-        decode_instr = 'NOP'
-        execute_instr = 'NOP'
-        memory_instr = 'NOP'
-        writeback_instr = 'NOP'
-        
-        # Para cada etapa, intentar mapear de vuelta a la instrucción original
-        if pipeline.if_id:
-            pc = pipeline.if_id.get("pc", 0)
-            idx = pc // 8
-            if 0 <= idx < len(self._instructions_cache):
-                decode_instr = self._instructions_cache[idx]
-        
-        if pipeline.id_ex:
-            # El ID/EX contiene la instrucción decodificada hace 1 ciclo
-            # Necesitamos rastrear esto basándonos en el opcode
-            op = pipeline.id_ex.get("opcode", 0)
-            execute_instr = self._opcode_to_instruction(op)
-        
-        if pipeline.ex_mem:
-            # Similar para EX/MEM
-            memory_instr = self._guess_instruction_from_stage(pipeline.ex_mem)
-        
-        if pipeline.mem_wb:
-            # Similar para MEM/WB
-            writeback_instr = self._guess_instruction_from_stage(pipeline.mem_wb)
-        
-        # Para FETCH, usar el PC actual
-        current_pc = self.cpu_instance.pc.get_pc()
-        idx = current_pc // 8
-        if 0 <= idx < len(self._instructions_cache):
-            fetch_instr = self._instructions_cache[idx]
-        
-        # Actualizar Excel con las instrucciones
-        self.cpu_excel.write_state_fetch(fetch_instr)
-        self.cpu_excel.write_state_decode(decode_instr)
-        self.cpu_excel.write_state_execute(execute_instr)
-        self.cpu_excel.write_state_memory(memory_instr)
-        self.cpu_excel.write_state_writeBack(writeback_instr)
     
     def _opcode_to_instruction(self, opcode):
         """Mapea un opcode a su mnemónico de instrucción"""
